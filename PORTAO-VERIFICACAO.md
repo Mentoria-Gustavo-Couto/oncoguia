@@ -1143,8 +1143,10 @@ Depois do deploy: **repovoar o #80 em produção pela tela** (o oncologista adic
 
 ## Cabeçalho oncológico (lista de problemas · parte clínica, 2026-09-18) — `scripts/portao-cabecalho.js`
 
-**Fase 1 (modelo, tela, edição manual) — aprovada no teste humano em 2026-09-18, commitada,
-aguardando deploy (backend primeiro, app depois).** A Fase 2 (a importação alimenta o
+**Fase 1 (modelo, tela, edição manual) — aprovada no teste humano em 2026-09-18, commitada
+(`ef86510`) e EM PRODUÇÃO desde 2026-09-18 (backend `f1bwk6vku`, app `eqas507qx`; migration
+conferida por API: 3 pacientes com `{}`; fumaça somente leitura com a conta de teste do
+oncologista: "+ montar" nos 3, Copiar só no que tem listas, 0 escritas, console limpo).** A Fase 2 (a importação alimenta o
 cabeçalho) só começa com comando explícito.
 
 O que é: a metade clínica da lista de problemas, com a estrutura do guia de cabeçalho
