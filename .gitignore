@@ -64,3 +64,11 @@ app/mockups/
 # por output/<run>/gerar_manifesto_fontes.py.
 squads/**/fontes/*
 !squads/**/fontes/MANIFESTO.md
+
+# PDFs de artigo fornecidos pelo revisor metodológico (repescagem de 2026-10-05): texto
+# integral de editora, entregue por pessoa e não redistribuível — mesmo argumento que tirou
+# squads/**/fontes/* do versionamento. Os arquivos ficam no disco de quem trabalha; o que se
+# versiona é o MANIFESTO.md (arquivo → pedido → publicação conferida) e as transcrições
+# literais que entram nos JSON das ondas.
+squads/mbe-oncologia/pipeline/data/artigos-fornecidos/*
+!squads/mbe-oncologia/pipeline/data/artigos-fornecidos/MANIFESTO.md
