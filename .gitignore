@@ -72,3 +72,11 @@ squads/**/fontes/*
 # literais que entram nos JSON das ondas.
 squads/mbe-oncologia/pipeline/data/artigos-fornecidos/*
 !squads/mbe-oncologia/pipeline/data/artigos-fornecidos/MANIFESTO.md
+
+# Fontes canônicas de MÉTODO (GRADE guidelines/guidance, Handbook, Bassler, manual do MS):
+# PDF/HTML de editora e de terceiro, adquiridos em 2026-10-06 para dar `fonte` às regras de
+# calibração do eixo grade. Mesmo argumento de artigos-fornecidos/ e de squads/**/fontes/*:
+# o texto integral não se redistribui. O que se versiona é o MANIFESTO.md, o PEDIDOS-DE-FONTE.md
+# e os `*.md` de extrato — que carregam só as FRASES LITERAIS citadas como `fonte` de uma regra.
+squads/mbe-oncologia/pipeline/data/fontes-metodo/*
+!squads/mbe-oncologia/pipeline/data/fontes-metodo/*.md

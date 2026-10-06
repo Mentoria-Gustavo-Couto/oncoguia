@@ -3,7 +3,7 @@
      Tabelas que a fonte trazia em CSV/pipe inline foram reformatadas à mão; nada foi acrescentado além
      do que está marcado em itálico entre parênteses. Base declarada: Guyatt et al., Users' Guides to the
      Medical Literature, 3ª ed. (2014).
-     Papel no squad: ficha de consulta — bloco **efeito** e domínio **imprecisão**. Mapeamento ao schema 2 do eixo `grade`: ver `grade-handbook.md`. -->
+     Papel no squad: ficha de consulta — bloco **efeito** e domínio **imprecisão**. Mapeamento ao schema 2 do eixo `grade`: ver `indice-guias-mbe.md`. -->
 
 # Manual Técnico: Interpretação de Magnitude, Precisão e Importância Clínica (Normas Guyatt & GRADE)
 

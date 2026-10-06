@@ -201,6 +201,8 @@ def resolve_doi(doi, timeout=12):
 # não é o publicado já causou diagnóstico em corpus rejeitado (3x).
 SQUAD_DIR = os.path.dirname(os.path.abspath(__file__))
 RUN_ATIVO_FILE = os.path.join(SQUAD_DIR, "RUN_ATIVO")
+TASK_GRADE_FILE = os.path.join(SQUAD_DIR, "agents", "verificador-evidencia", "tasks",
+                               "rederivar-grade.md")
 
 # ---- [9] expectativa de tempo de uso: leitura do esquema -----------
 # Reimplementa (compacto) a derivação mecânica usada na extração, para o portão
@@ -440,50 +442,44 @@ def ic_exclui_nulo(efeito):
     return hi < nulo if efeito.get("sentido_beneficio") == "menor" else lo > nulo
 
 
-def efeito_grande(efeito):
-    """RRR >= 30% com IC estreito (limite conservador <= 0,85) — só para medida de razão."""
-    ic = _ic(efeito)
-    v = efeito.get("valor")
-    if not ic or efeito.get("medida") not in MEDIDAS_RAZAO or not isinstance(v, (int, float)):
-        return False
-    lo, hi = ic
-    if efeito.get("sentido_beneficio") == "menor":
-        return v <= 0.70 and hi <= 0.85
-    return v >= 1 / 0.70 and lo >= 1 / 0.85
+# ---- imprecisão: o que SOBROU depois da triagem de fontes de 2026-10-06 ----------------
+# R4.d (colchão de 0,95/1,05), R4.e (eventos < 300 sem "efeito grande") e R4.f (−2 automático)
+# estão SUSPENSAS. O registro e o motivo estão em "Fonte de cada regra de calibração", em
+# agents/verificador-evidencia/tasks/rederivar-grade.md. Em resumo: o 0,95 não existe em fonte
+# nenhuma; os 300 eventos são, na Table 1 de GRADE guidelines 6, o ponto em que o OIS É ATENDIDO
+# com RRR de 30% — e não um piso de punição; e "efeito grande" é mecanismo de ELEVAÇÃO de
+# evidência OBSERVACIONAL (RR > 2 / < 0,5), não dispensa de rebaixamento em RCT. O OIS da fonte é
+# cálculo sobre a taxa de evento no CONTROLE e a RRR escolhida — dado que o schema 2 não grava.
+# O portão não substitui a regra caída por juízo próprio: ele para de decidir e grava a
+# EXPOSIÇÃO num WARN, para o referendo ver onde o valor dependia da convenção.
+EVENTOS_OIS_REFERENCIA = 300    # SÓ para o WARN de exposição. NÃO é limiar aplicado.
 
 
 def imprecisao_obrigatoria(efeito):
-    """Regra 4: IC encostando no nulo, ou < 300 eventos sem efeito grande.
-    C3: o colchão (0,95 / 1,05) só se aplica a IC de exatamente 95%; um IC mais largo
-    (98,89%, 99,8%) que ainda exclui o nulo é evidência MAIS segura — só o nulo conta."""
+    """Regra 4, partes que têm fonte: R4.a (o IC de 95% não exclui o nulo) e R4.c (a diferença
+    absoluta inclui 0). R4.b (IC reportado abaixo de 95%) é decidida no chamador, que conhece
+    `ic_nivel`. IC de nível acima de 95% que exclui o nulo já o exclui a 95% — usa-se como está."""
     ic = _ic(efeito)
     if not ic:
         return True, "IC ausente/malformado"
     lo, hi = ic
-    med, sent = efeito.get("medida"), efeito.get("sentido_beneficio")
-    nivel = efeito.get("ic_nivel", 95)
-    folga = (nivel == 95)
-    if med in MEDIDAS_RAZAO:
-        if sent == "menor" and (hi > 0.95 if folga else hi >= 1):
-            return True, f"limite superior do IC {hi} {'> 0,95' if folga else '≥ 1 (IC ' + str(nivel) + '%)'}"
-        if sent == "maior" and (lo < 1.05 if folga else lo <= 1):
-            return True, f"limite inferior do IC {lo} {'< 1,05' if folga else '≤ 1 (IC ' + str(nivel) + '%)'}"
-    else:
-        if (sent == "menor" and hi >= 0) or (sent == "maior" and lo <= 0):
-            return True, "IC da diferença inclui 0"
-    ev = efeito.get("eventos")
-    if isinstance(ev, (int, float)) and ev < 300 and not efeito_grande(efeito):
-        return True, f"{int(ev)} eventos < 300 sem efeito grande"
+    if not ic_exclui_nulo(efeito):
+        if efeito.get("medida") in MEDIDAS_RAZAO:
+            return True, f"IC {lo}–{hi} não exclui o nulo (1,0)"
+        return True, "IC da diferença inclui 0"
     return False, ""
 
 
-def imprecisao_muito_seria(efeito):
-    """C5: eventos < 300 E IC que não exclui o nulo a 95% (ou reportado abaixo de 95%) —
-    critérios da ficha cumpridos → −2 obrigatório, qualquer desenho."""
-    ev = efeito.get("eventos")
-    if not (isinstance(ev, (int, float)) and ev < 300):
+def ic_raspa_o_nulo(efeito):
+    """Exposição, não regra: o IC exclui o nulo mas por pouco (limite dentro de 0,95–1,0 ou
+    1,0–1,05). Era aqui que o colchão R4.d mandava rebaixar. Serve ao WARN."""
+    ic = _ic(efeito)
+    if not ic or efeito.get("medida") not in MEDIDAS_RAZAO or efeito.get("ic_nivel", 95) != 95:
         return False
-    return (not ic_exclui_nulo(efeito)) or efeito.get("ic_nivel", 95) < 95
+    lo, hi = ic
+    if efeito.get("sentido_beneficio") == "menor":
+        return 0.95 < hi < 1
+    return 1 < lo < 1.05
 
 
 def _norm_farmaco(s):
@@ -616,10 +612,15 @@ def check_grade_schema2(r, bugs, warns_nominais):
             B(f"certeza {certeza} ≠ aritmética {NUM_CERTEZA[calc]} (inicial {inicial} "
               f"{'+'.join(str(n) for n in notas.values())}{' +%d' % soma_elev if soma_elev else ''})")
 
-    # --- regra 3: fase II / observacional nunca A; B só com elevação ---
+    # --- regra 3: desenho de inicial C — B só com elevação ---
+    # R3.c ("nunca A") SUSPENSA em 2026-10-06: contraria a fonte. A Table 5.9 do Handbook dá +2
+    # por efeito muito grande (RR > 5 ou < 0,2), e Baixa + 2 = Alta; o manual do MS é explícito:
+    # "o nível de evidência deve ser considerado alto, mesmo caso a evidência tenha origem a
+    # partir de estudos observacionais". Passa a WARN nominal.
     if inicial == "C":
         if certeza == "A":
-            B(f"regra 3: desenho '{des.get('tipo')}' parte de C — nunca A")
+            W(f"R3.c SUSPENSA: desenho '{des.get('tipo')}' parte de C e fechou em A — a fonte permite "
+              f"(+2 por efeito muito grande), o portão não barra mais; confira as elevações no referendo")
         elif certeza == "B" and not elev:
             B(f"regra 3: desenho '{des.get('tipo')}' em B sem elevacoes declaradas")
 
@@ -638,16 +639,24 @@ def check_grade_schema2(r, bugs, warns_nominais):
     elif exc:
         B("substituto_excecao declarada com desfecho crítico duro — não se aplica")
 
-    # --- regra 4: imprecisão automática ---
-    obrig, motivo = imprecisao_obrigatoria(ef)
-    if ic_nivel < 95 and not obrig:
+    # --- regra 4: imprecisão automática (só as partes com fonte) ---
+    obrig, motivo = imprecisao_obrigatoria(ef)                      # R4.a / R4.c
+    if ic_nivel < 95 and not obrig:                                 # R4.b (C3)
         obrig, motivo = True, f"IC reportado é de {ic_nivel}% — exclusão do nulo a 95% não demonstrada"
-    if analise == "interina" and not obrig:
+    if analise == "interina" and not obrig:                         # C4
         obrig, motivo = True, "análise interina sem versão mais madura (C4)"
     if obrig and notas.get("imprecisao", 0) > -1:
         B(f"regra 4: imprecisão tem de ser ≤ -1 ({motivo})")
-    if imprecisao_muito_seria(ef) and notas.get("imprecisao", 0) > -2:
-        B(f"regra 4/C5: eventos {int(ef.get('eventos'))} < 300 e IC que não exclui o nulo a 95% — imprecisão tem de ser -2")
+    # Exposição das regras suspensas (R4.d, R4.e, R4.f): o portão não decide, só mostra onde o
+    # valor dependia da convenção aposentada. Nada aqui gera FALHA.
+    ev_ref = ef.get("eventos")
+    if isinstance(ev_ref, (int, float)) and ev_ref < EVENTOS_OIS_REFERENCIA:
+        W(f"R4.e SUSPENSA: {int(ev_ref)} eventos (< {EVENTOS_OIS_REFERENCIA}) — o portão não rebaixa "
+          f"mais por contagem de eventos; imprecisão ficou em {notas.get('imprecisao', 0)} por "
+          f"preenchimento do agente. O OIS da fonte é cálculo e precisa da taxa de evento no controle")
+    if ic_raspa_o_nulo(ef):
+        W(f"R4.d SUSPENSA: IC {_ic(ef)} exclui o nulo por pouco — o colchão de 0,95/1,05 era órfão e "
+          f"saiu; imprecisão ficou em {notas.get('imprecisao', 0)}")
 
     # --- regra 6: pivô sustenta ---
     pv = g.get("pivo") or {}
@@ -708,21 +717,27 @@ def check_grade_schema2(r, bugs, warns_nominais):
 
     # --- C9: referência de corpo ---
     rc = pv.get("referencia_corpo")
-    corpo_ok = False
     if rc:
         if not (isinstance(rc, dict) and rc.get("doi") and rc.get("tipo") in TIPOS_CORPO
                 and (rc.get("comparacao") or "").strip() and (rc.get("por") or "").strip()):
             B("C9: referencia_corpo exige {doi, tipo ∈ cochrane|meta_analise|revisao_sistematica, comparacao, por}")
         else:
-            corpo_ok = True
+            # (até 2026-10-06 havia aqui um `corpo_ok` que só alimentava a cláusula de eventos da
+            # regra 1; com a R1.d suspensa, a variável ficou sem leitor e saiu.)
             if des.get("tipo") != "meta_analise_rct":
                 B("C9: com referencia_corpo o desenho tem de ser 'meta_analise_rct' (o efeito é o agregado da revisão)")
             decl = rc.get("certeza_declarada")
             if decl not in CERTEZA_DECLARADA and decl is not None:
                 B(f"C9: certeza_declarada '{decl}' fora de alta|moderada|baixa|muito_baixa (ou null se a revisão não gradua)")
-            teto = CERTEZA_DECLARADA.get(decl, "B")   # revisão que não gradua → teto B
-            if CERTEZA_NUM[certeza] > CERTEZA_NUM[teto]:
-                B(f"C9: certeza {certeza} acima do teto da revisão ({'declarada ' + decl if decl else 'sem grau declarado → B'})")
+            # C9.b ("revisão sem grau → teto B") SUSPENSA em 2026-10-06: o teto B é número sem
+            # fonte. A deferência à certeza DECLARADA (C9.a) continua; sem grau declarado, a
+            # certeza se avalia pelos 5 domínios como em qualquer corpo de evidência.
+            teto = CERTEZA_DECLARADA.get(decl)
+            if teto and CERTEZA_NUM[certeza] > CERTEZA_NUM[teto]:
+                B(f"C9: certeza {certeza} acima do teto da revisão (declarada {decl})")
+            elif not teto:
+                W(f"C9.b SUSPENSA: revisão {rc['doi']} não declara grau — sem teto imposto; "
+                  f"certeza {certeza} vem dos 5 domínios")
             W(f"C9: certeza avaliada sobre corpo de evidência {rc['doi']} ({rc['tipo']}; {rc['comparacao']}; declarada: {decl})")
     textos = " ".join([str(g.get("justificativa") or "")] + [str((dom.get(d) or {}).get("por") or "") for d in DOMINIOS_GRADE])
     if CORPO_RE.search(textos) and not rc:
@@ -741,10 +756,16 @@ def check_grade_schema2(r, bugs, warns_nominais):
             B("regra 1: certeza A com IC que não exclui o nulo")
         if ic_nivel < 95:
             B(f"regra 1: certeza A com IC de {ic_nivel}% — precisão a 95% não demonstrada na fonte")
+        # R1.d SUSPENSA em 2026-10-06 (eventos ≥ 300 OU efeito grande). Era contrária à fonte em
+        # dois níveis: emprestava o mecanismo de ELEVAÇÃO de evidência observacional para dispensar
+        # um rebaixamento em RCT, e invertia a Table 1 de GRADE guidelines 6, onde 300 eventos com
+        # RRR 30% é o ponto em que o OIS É ATENDIDO. Vira WARN de exposição: o `A` fica, e o
+        # referendo vê de qual base ele dependia.
         ev = ef.get("eventos")
-        ois_corpo = corpo_ok and (rc or {}).get("certeza_declarada") == "alta"
-        if not ((isinstance(ev, (int, float)) and ev >= 300) or efeito_grande(ef) or ois_corpo):
-            B(f"regra 1: certeza A exige eventos ≥ 300 ou efeito grande (RRR ≥ 30%, IC sup ≤ 0,85) ou corpo com certeza declarada alta — eventos={ev}")
+        if not (isinstance(ev, (int, float)) and ev >= EVENTOS_OIS_REFERENCIA):
+            W(f"R1.d SUSPENSA: certeza A com eventos={ev} — o portão não exige mais "
+              f"{EVENTOS_OIS_REFERENCIA} eventos nem aceita 'efeito grande' como dispensa. "
+              f"O A permanece como está; repor a regra depende da Guidance 34 (pedido 1)")
         if any(n < 0 for n in notas.values()):
             B("regra 1: certeza A com domínio rebaixado")
 
@@ -764,7 +785,9 @@ def check_grade_schema2(r, bugs, warns_nominais):
         B("regra 5: regime NÃO incorporado com direção a_favor — a instituição não o recomenda; direção é contra")
     if forca == "forte" and direcao == "a_favor":
         if CERTEZA_NUM[certeza] < CERTEZA_NUM["B"]:
-            B(f"regra 5: forte a favor exige certeza ≥ B (está {certeza})")
+            W(f"R5.a SUSPENSA: forte a favor com certeza {certeza} — a fonte admite recomendação "
+              f"forte com certeza baixa ou muito baixa (Handbook §1.2; Quadro 12 do manual do MS, "
+              f"5 situações-modelo). O portão não barra mais; é o revisor que diz se é uma delas")
         mcbs = parse_mcbs(((r.get("verificacao") or {}).get("esmo_mcbs") or {}).get("valor_rederivado"))
         if mcbs is None:
             if not (rec.get("sem_mcbs_por") or "").strip():
@@ -794,6 +817,123 @@ def check_grade_schema2(r, bugs, warns_nominais):
         B(f"fonte '{g.get('fonte')}' não é o DOI do regime ({get_doi(r)}) — versão madura do mesmo estudo é pivo.referencia_atualizada (C4)")
     if not (g.get("justificativa") or "").strip():
         B("justificativa vazia")
+
+
+# ---- [12] fonte das regras de calibração ------------------------------------------------
+# Em vigor desde 2026-10-06. Motivo concreto: a convenção de "efeito grande" (RRR >= 30% com IC
+# superior <= 0,85) foi criada pelo squad, foi DECLARADA na task como não canônica, e ainda assim
+# governou a letra de cinco regimes por semanas. O defeito não foi a declaração — foi que regra
+# sem fonte PÔDE ser aplicada. Declarar convenção é um bilhete ao lado da alavanca; não é controle.
+#
+# Este check fecha a classe: ele lê o registro "Fonte de cada regra de calibração" da task e
+# confere, nos DOIS sentidos, contra REGRAS_APLICADAS abaixo:
+#   - toda regra que o código cobra tem de estar APLICADA no registro, com fonte e frase literal;
+#   - nenhuma regra marcada SUSPENSA pode estar sendo cobrada pelo código.
+# Nenhum dos dois lados vale sozinho: a task sem o código é promessa, o código sem a task é
+# exatamente a situação que criou a convenção.
+#
+# Para mexer aqui: mude a task E esta lista na mesma mudança. É de propósito que seja chato.
+REGRAS_APLICADAS = [
+    "R1.a", "R1.b", "R1.c", "R1.e",            # certeza A: desenho, desfecho, IC, domínios em 0
+    "R2", "C8",                                # substituto sem SG; desfecho curativo (institucional)
+    "R3.a", "R3.b", "R3.d", "R3.e",            # certeza inicial; precedência e escopo das elevações
+    "R4.a", "R4.b", "R4.c", "C4",              # imprecisão: nulo, nível do IC, diferença, interina
+    "R5.b", "R5.c",                            # MCBS e incorporação (institucionais)
+    "R6.a", "R6.b", "R6.c",                    # pivô: intervenção, comparador, primário
+    "C9.a",                                    # deferência à certeza declarada da revisão
+    "F1", "F2",                                # aritmética da certeza; forma dos domínios
+]
+FONTE_TIPOS_VALIDOS = {"metodologica", "institucional"}
+REGRA_RE = re.compile(r"^###\s+([A-Z]\d*(?:\.[a-z])?)\s+—\s+(.+?)\s*$", re.M)
+CAMPO_RE = re.compile(r"^-\s+([a-z.]+):\s*(.*?)\s*$", re.M)
+
+
+def ler_registro_de_fontes(caminho=None):
+    """Lê os blocos `### <id> — <nome>` do registro da task. Devolve {id: {campos}}.
+    Formato deliberadamente rígido: o registro existe para ser conferido, não para ser bonito."""
+    caminho = caminho or TASK_GRADE_FILE
+    with open(caminho, encoding="utf-8") as fh:
+        texto = fh.read()
+    # Ancorar no CABEÇALHO (início de linha), não na primeira ocorrência do texto: a seção é
+    # citada em prosa antes de existir, e casar com a citação devolvia zero bloco em silêncio.
+    cab = re.search(r"^## Fonte de cada regra de calibração\s*$", texto, re.M)
+    if not cab:
+        return None
+    marco = cab.start()
+    prox = re.search(r"^## ", texto[cab.end():], re.M)
+    fim = cab.end() + prox.start() if prox else -1
+    bloco = texto[marco:fim if fim > 0 else len(texto)]
+    achados = list(REGRA_RE.finditer(bloco))
+    regras = {}
+    for i, m in enumerate(achados):
+        corpo = bloco[m.end():achados[i + 1].start() if i + 1 < len(achados) else len(bloco)]
+        campos = {k: v for k, v in CAMPO_RE.findall(corpo)}
+        campos["_nome"] = m.group(2)
+        regras[m.group(1)] = campos
+    return regras
+
+
+def check_fonte_das_regras(fails, warns):
+    """[12] Nenhuma regra de calibração em uso sem `fonte` com frase literal."""
+    try:
+        regras = ler_registro_de_fontes()
+    except FileNotFoundError:
+        fails.append(("[12] registro de fontes das regras não encontrado",
+                      [os.path.relpath(TASK_GRADE_FILE, SQUAD_DIR)]))
+        return None
+    if regras is None:
+        fails.append(("[12] a task não tem a seção 'Fonte de cada regra de calibração'",
+                      [os.path.relpath(TASK_GRADE_FILE, SQUAD_DIR)]))
+        return None
+
+    sem_fonte, suspensa_em_uso, ausentes, malformadas = [], [], [], []
+    for rid in REGRAS_APLICADAS:
+        r = regras.get(rid)
+        if r is None:
+            ausentes.append(rid)
+            continue
+        estado = r.get("estado", "")
+        if estado == "SUSPENSA":
+            suspensa_em_uso.append(f"{rid} ({r['_nome']})")
+            continue
+        if estado != "APLICADA":
+            malformadas.append(f"{rid}: estado '{estado}' não é APLICADA|SUSPENSA")
+            continue
+        tipo = r.get("fonte.tipo", "")
+        frase = r.get("fonte.frase", "")
+        ref = r.get("fonte.ref", "")
+        if tipo not in FONTE_TIPOS_VALIDOS:
+            sem_fonte.append(f"{rid}: fonte.tipo '{tipo}' fora de {sorted(FONTE_TIPOS_VALIDOS)}")
+        elif not frase.strip() or frase.strip() in ("—", "-"):
+            sem_fonte.append(f"{rid}: fonte.frase vazia — parafrasear não vale, a frase é literal")
+        elif not ref.strip() or ref.strip() in ("—", "-"):
+            sem_fonte.append(f"{rid}: fonte.ref vazia")
+
+    # O outro sentido: SUSPENSA tem de dizer por que caiu.
+    for rid, r in regras.items():
+        if r.get("estado") == "SUSPENSA" and not r.get("contradiz") \
+                and r.get("fonte.tipo") != "nenhuma":
+            malformadas.append(f"{rid}: SUSPENSA sem 'contradiz:' nem 'fonte.tipo: nenhuma'")
+
+    if sem_fonte:
+        fails.append(("[12] regra de calibração APLICADA sem `fonte` com frase literal — "
+                      "regra sem fonte NÃO se aplica", sem_fonte))
+    if suspensa_em_uso:
+        fails.append(("[12] o código cobra regra marcada SUSPENSA na task — é o defeito que o "
+                      "check existe para pegar", suspensa_em_uso))
+    if ausentes:
+        fails.append(("[12] regra cobrada pelo código e ausente do registro de fontes", ausentes))
+    if malformadas:
+        fails.append(("[12] bloco malformado no registro de fontes", malformadas))
+
+    orfas = sorted(k for k, v in regras.items() if v.get("estado") == "SUSPENSA")
+    nao_cobradas = sorted(k for k, v in regras.items()
+                          if v.get("estado") == "APLICADA" and k not in REGRAS_APLICADAS)
+    if nao_cobradas:
+        warns.append(("[12] regra APLICADA no registro que o portão não cobra (vale para o agente, "
+                      "não para o script — confirme que é intencional)", nao_cobradas))
+    return {"total": len(regras), "aplicadas": len(REGRAS_APLICADAS), "orfas": orfas,
+            "ok": not (sem_fonte or suspensa_em_uso or ausentes or malformadas)}
 
 
 def run_ativo_rel():
@@ -1157,6 +1297,14 @@ def main():
         print(f"~ [11] SKIP GRADE schema 2: nenhum bloco schema 2 ({n_leg} legado) — as regras não se aplicam ao valor livre antigo.")
     if g_warn:
         warns.append(("GRADE schema 2 — exceções/propostas declaradas que o referendo precisa ver", g_warn))
+
+    # 12) Fonte das regras de calibração: nenhuma regra em uso sem `fonte` com frase literal.
+    #     Roda sempre, inclusive sem bloco schema 2 — é check de MÉTODO, não de lote.
+    reg = check_fonte_das_regras(fails, warns)
+    if reg and reg["ok"]:
+        print(f"✓ [12] fonte das regras: {reg['aplicadas']} aplicadas, todas com `fonte` e frase "
+              f"literal; {len(reg['orfas'])} suspensa(s) e nenhuma em uso"
+              + (" — " + ", ".join(reg["orfas"]) if reg["orfas"] else ""))
 
     # 6) DOIs de confirmado resolvem (opcional, rede)
     if check_dois:

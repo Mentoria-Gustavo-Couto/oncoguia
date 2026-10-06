@@ -19,7 +19,7 @@ Executar a task `rederivar-grade` do verificador. Este agente é **adversarial**
 - `output/regimes-extraidos.json`
 - `pipeline/data/grade-framework.md`
 - `pipeline/data/mbe-grade-certeza.md` · `pipeline/data/mbe-indirectness.md` · `pipeline/data/mbe-magnitude-precisao.md` (base metodológica — input declarado desde 2026-09-17)
-- `pipeline/data/grade-handbook.md` (índice dos 7 guias MBE da direção, 2026-09-17 — prevalece sobre as fichas) · `pipeline/data/guia-prompts-ebm-grade.md` (protocolo de execução)
+- `pipeline/data/indice-guias-mbe.md` (índice dos 7 guias MBE da direção, 2026-09-17 — prevalece sobre as fichas) · `pipeline/data/guia-prompts-ebm-grade.md` (protocolo de execução)
 - `pipeline/data/fontes-confiaveis.md`
 
 ## Output
