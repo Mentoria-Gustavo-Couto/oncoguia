@@ -340,6 +340,8 @@
   .noinc-sec[open]>summary::before{content:"▾ "}
   .noinc-sec>summary .cnt{font-weight:700;font-size:11px;color:#a86;background:#f5e8e5;border-radius:10px;padding:2px 8px;margin-left:6px}
   .noinc-sec .noinc-hint{font-size:11.5px;color:#8a7a75;margin:0 2px 10px}
+  .sem-legenda{font-size:11.5px;line-height:1.5;color:#8a7a75;margin:0 2px 10px;padding:7px 10px;
+    background:#fdfaf7;border:1px solid #efe2db;border-left:3px solid var(--amber,#b36b00);border-radius:4px}
   .noinc-sec .proto{background:#fff}
   .sel-btn.noinc{border-color:#c9a29a;color:#8c3a2e;background:transparent;font-weight:600}
   .sel-btn.noinc:hover{background:#8c3a2e;border-color:#8c3a2e;color:#fff}
@@ -5524,8 +5526,15 @@ function renderProtos(p){
   // seção recolhida "Avaliados — não incorporados", com motivo e evidência visíveis.
   const Rinc = R.filter(x=>incorporacao(x.r).incorporado);
   const Rni  = R.filter(x=>!incorporacao(x.r).incorporado);
-  const cards = Rinc.map(cardHtml).join("")
-    || `<div class="empty">Nenhum protocolo incorporado para este tumor${Rni.length?" — veja os avaliados não incorporados abaixo":""}.</div>`;
+  // Legenda do semáforo. Depois da Fase 2a (biomarcador booleano → enum com `nao_testado`)
+  // o amarelo aparece mais: exame que ninguém pediu deixou de ser lido como "negativo" e
+  // passou a ser lido como o que é — falta de informação. Sem esta linha a equipe lê o
+  // amarelo a mais como piora do sistema, quando é o contrário.
+  const legenda = `<div class="sem-legenda">🟢 elegível · 🟡 falta informação · 🔴 não elegível.
+    Amarelo não é recusa: algum campo da regra está em branco — quase sempre um exame que não
+    consta no prontuário. Os chips amarelos do protocolo mostram quais.</div>`;
+  const cards = legenda + (Rinc.map(cardHtml).join("")
+    || `<div class="empty">Nenhum protocolo incorporado para este tumor${Rni.length?" — veja os avaliados não incorporados abaixo":""}.</div>`);
   const nElig = Rni.filter(x=>x.status==="ok").length;
   const niSec = Rni.length ? `<details class="noinc-sec">
       <summary>Avaliados — não incorporados <span class="cnt">${Rni.length}${nElig?` · ${nElig} elegíve${nElig>1?"is":"l"}`:""}</span></summary>

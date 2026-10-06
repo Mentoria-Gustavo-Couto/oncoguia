@@ -738,6 +738,46 @@ Roda 2×. Em produção (`PORTAO_API=https://oncoguia-backend.vercel.app/api`) s
 publicado; D6 então tem de mostrar os 14 em *Aguardando re-revisão*. Se o `semaforo.ts` ou o
 `evalExpr` da app mudarem, é este portão (D7) que acusa a dessincronia — junto com o da importação.
 
+## Portão do SEMÁFORO (`scripts/portao-semaforo.js`) — Rodada B / Fase 2a, 2026-10-05
+
+Corrige o **verde espúrio**: `primDefault()` devolve `false` para booleano não tocado, então
+uma regra que pede `eq false` era satisfeita por um exame que ninguém pediu — o protocolo
+nascia 🟢. O mesmo default reprovava as regras que pedem `eq true` (🔴). A correção é de
+**dado**, não de motor: 15 biomarcadores booleanos viraram enum com `nao_testado` primeiro e
+`indeterminado:["nao_testado"]`, no molde dos drivers de pulmão.
+
+Este portão é **afirmativo**: não verifica que nada quebrou, afirma uma propriedade.
+
+- **S1 intenção**: a lista COMPLETA dos 15 convertidos (+ os 4 que já estavam certos) está no
+  código, como o `E1` do portão da secretaria. Campo que suma do corpus falha AQUI, não em
+  produção. Cada um: enum, token indeterminado em 1ª opção (é isso que faz o `primDefault`
+  cair no 🟡), `indeterminado` e `rotulos` declarados.
+- **S2 vigilância**: varre o corpus inteiro atrás de booleano de biomarcador sem
+  `indeterminado`. Campo novo nessa situação falha antes do deploy. As exceções conhecidas
+  (duvidosos de anatomopatológico + o que ficou para a Fase 2b) são explícitas no script —
+  tirar um de lá sem converter o campo faz S2 falhar.
+- **S3 afirmativo**: para cada um dos 27 pares (campo × regime), resolve uma atribuição
+  **discriminante** do resto da regra — uma em que o exame é o que decide (🟢 com um valor,
+  🔴 com outro) — e então deixa o exame em branco: tem de dar 🟡. Exigir que seja
+  discriminante evita dois falsos: passar vacuamente por ter deixado tudo amarelo, e acusar
+  um 🔴 que vinha de OUTRO campo da regra.
+- **S4 o par do colo de útero, nomeado**: o MESMO PD-L1 não pedido não pode reprovar o
+  KEYNOTE-A18 e aprovar o GOG-169. Antes: 🔴 e 🟢. Depois: 🟡 nos dois, e com o exame feito o
+  par volta a discriminar. É o teste que prova a correção.
+- **S5 paridade**: os mesmos 27 casos nos DOIS interpretadores (`evalExpr` da app e o
+  `semaforo.ts` compilado). Se divergirem, o defeito é maior que o corrigido.
+- **S6 dado já gravado**: a conversão troca o DOMÍNIO do campo. Uma seleção antiga com
+  `pdl1_alto: true` não vira amarelo — vira 🔴 em silêncio (`true` ≠ `"positivo"`), que é pior
+  que o defeito corrigido. S6 varre `selecoes_protocolo.dados_clinicos` atrás disso.
+
+Roda 2×. **Antes de qualquer deploy, S6 tem de ser conferido contra PRODUÇÃO** — o portão só
+alcança o banco de dev, e é em produção que existe paciente real com clínico preenchido.
+
+Quem muda o vocabulário muda os chamadores: o `portao-drivers-pulmao` passava
+`pdl1_alto: true/false` e foi atualizado para `'positivo'/'negativo'` na mesma mudança. Um
+portão irmão falhando depois de uma conversão de domínio é sinal de chamador desatualizado —
+confira qual dos dois está velho antes de concluir que houve regressão.
+
 ## Justificativa do solicitante (2026-09-17, Rodada C) — checks `U4`/`U6`/`A3`/`A7`/`B5`/`E0`/`E1` do `portao-autorizacao`
 
 Pedido da direção: ao pedir um protocolo **Inelegível** ou **Não incorporado**, o

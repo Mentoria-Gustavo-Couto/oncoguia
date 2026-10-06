@@ -20803,7 +20803,7 @@
             {
               "eq": [
                 "pdl1_pos",
-                true
+                "positivo"
               ]
             },
             {
@@ -21002,7 +21002,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "c1723334ffdcc1e6"
+      "content_hash": "5c87b3ac6c7c825e"
     },
     {
       "regimen_id": "nsclc-periop-pembrolizumabe-qt",
@@ -22143,7 +22143,7 @@
             {
               "eq": [
                 "pdl1_alto",
-                true
+                "positivo"
               ]
             },
             {
@@ -22318,7 +22318,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "1011d5ccf0be273a"
+      "content_hash": "6f0031b4be2a4422"
     },
     {
       "regimen_id": "nsclc-adj-io-estagioI-nao-incluido",
@@ -22814,7 +22814,7 @@
             {
               "eq": [
                 "pdl1_alto",
-                true
+                "positivo"
               ]
             },
             {
@@ -23007,7 +23007,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "28ef622348f3c33c"
+      "content_hash": "f3cb7c5aaa55d577"
     },
     {
       "regimen_id": "nsclc-met-io-qt-pdl1baixo",
@@ -23044,7 +23044,7 @@
             {
               "eq": [
                 "pdl1_alto",
-                false
+                "negativo"
               ]
             },
             {
@@ -23315,7 +23315,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "966311b700b5a046"
+      "content_hash": "13b5ac4cb70bc758"
     },
     {
       "regimen_id": "nsclc-met-io-qt-pdl1baixo-escamoso",
@@ -23352,7 +23352,7 @@
             {
               "eq": [
                 "pdl1_alto",
-                false
+                "negativo"
               ]
             },
             {
@@ -23570,7 +23570,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "604aa87f1c303a00"
+      "content_hash": "84f2d12c1fac5707"
     },
     {
       "regimen_id": "nsclc-met-atezo-bev-nao-incluido",
@@ -28438,13 +28438,13 @@
             {
               "eq": [
                 "ras_wt",
-                true
+                "selvagem"
               ]
             },
             {
               "eq": [
                 "braf_wt",
-                true
+                "selvagem"
               ]
             }
           ]
@@ -28615,7 +28615,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "d266115b8a14c0b7"
+      "content_hash": "9e8e3d82e665a689"
     },
     {
       "regimen_id": "crc-met-pembrolizumabe-msi",
@@ -28646,7 +28646,7 @@
             {
               "eq": [
                 "msi_alto",
-                true
+                "positivo"
               ]
             }
           ]
@@ -28781,7 +28781,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "1c92a34a0a0144ff"
+      "content_hash": "c35318695b477f04"
     },
     {
       "regimen_id": "crc-met-tas-bevacizumab",
@@ -32139,7 +32139,7 @@
             {
               "eq": [
                 "mutacao_brca",
-                true
+                "positivo"
               ]
             }
           ]
@@ -32347,7 +32347,7 @@
         },
         "nota_verificacao_squad": "VERIFICAÇÃO DO SQUAD (não altera a decisão do revisor): a SG final do TALAPRO-2 já foi publicada — AGARWAL N, Azad AA, Carles J, et al. Talazoparib plus enzalutamide in men with metastatic castration-resistant prostate cancer: final overall survival results from the randomised, placebo-controlled, phase 3 TALAPRO-2 trial. Lancet. 2025;406(10502):447-460. (PMID 40683290; Crossref 200). Resultado: coorte não selecionada (n=805), seguimento mediano 52,5 meses: SG HR 0,80 (IC95% 0,66–0,96; p=0,016), mediana 45,8 vs 37,0 meses; HRR-deficientes (n=169) HR 0,55 (0,36–0,83; p=0,0035); HRR não-deficiente/desconhecido HR 0,88 (0,71–1,08). Os números da justificativa do revisor (SG 3 anos 78% vs 72%; HR 0,77, IC 0,56–1,04; 'não significativo, dados imaturos') NÃO correspondem a esta publicação final — parecem vir de uma análise interina anterior. A não-incorporação é decisão do revisor e fica; a justificativa numérica precisa de re-revisão à luz da SG final."
       },
-      "content_hash": "db571228927c2e04"
+      "content_hash": "0bc46abb0b19da8e"
     },
     {
       "regimen_id": "prostata-mcrpc-2l-cabazitaxel-nao-incorporado",
@@ -38712,7 +38712,7 @@
             {
               "eq": [
                 "cldn18_2_positivo",
-                true
+                "positivo"
               ]
             },
             {
@@ -38880,7 +38880,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "9ea9340f27fa1093"
+      "content_hash": "5bfc3643eef53d68"
     },
     {
       "regimen_id": "cp-cec-def-cisplatina-crt",
@@ -39902,7 +39902,7 @@
             {
               "eq": [
                 "pdl1_cps1",
-                true
+                "positivo"
               ]
             }
           ]
@@ -40101,7 +40101,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "2938795a21412e12"
+      "content_hash": "026ebeb8b21af24a"
     },
     {
       "regimen_id": "cp-cec-met-1l-pembrolizumabe-mono-cps",
@@ -40138,7 +40138,7 @@
             {
               "eq": [
                 "pdl1_cps1",
-                true
+                "positivo"
               ]
             }
           ]
@@ -40278,7 +40278,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "2938795a21412e12"
+      "content_hash": "026ebeb8b21af24a"
     },
     {
       "regimen_id": "cp-cec-met-1l-cetuximabe-cps-neg",
@@ -40327,7 +40327,7 @@
             {
               "eq": [
                 "pdl1_cps1",
-                false
+                "negativo"
               ]
             }
           ]
@@ -40510,7 +40510,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "5721e9662378aaee"
+      "content_hash": "3835014ab5586485"
     },
     {
       "regimen_id": "cp-cec-met-2l-nivolumabe",
@@ -42866,7 +42866,7 @@
             "expr": {
               "eq": [
                 "pdl1_cps1",
-                true
+                "positivo"
               ]
             }
           }
@@ -43110,7 +43110,7 @@
             {
               "eq": [
                 "pdl1_cps1",
-                true
+                "positivo"
               ]
             }
           ]
@@ -43298,7 +43298,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "efa4277fabf101ab"
+      "content_hash": "1a53a20a11c74940"
     },
     {
       "regimen_id": "colo-met-1l-qt-cps-neg",
@@ -43341,7 +43341,7 @@
             {
               "eq": [
                 "pdl1_cps1",
-                false
+                "negativo"
               ]
             }
           ]
@@ -43524,7 +43524,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "631a7932b40a24a2"
+      "content_hash": "74a89fd7e106bea0"
     },
     {
       "regimen_id": "colo-met-cemiplimabe-refrataria",
@@ -48375,7 +48375,7 @@
             {
               "eq": [
                 "alteracao_fgfr",
-                true
+                "positivo"
               ]
             },
             {
@@ -48575,7 +48575,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "99b8818096295417"
+      "content_hash": "eb65088331378bc3"
     },
     {
       "regimen_id": "melanoma-adj-pembrolizumabe-iib-iic",
@@ -53011,7 +53011,7 @@
             {
               "eq": [
                 "msi_alto",
-                true
+                "positivo"
               ]
             }
           ]
@@ -53187,7 +53187,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "189f021a89e1566b"
+      "content_hash": "6c847a0ce7bb01b1"
     },
     {
       "regimen_id": "endometrio-met-dostarlimabe-mss-nao-incluido",
@@ -53218,7 +53218,7 @@
             {
               "eq": [
                 "msi_alto",
-                false
+                "negativo"
               ]
             }
           ]
@@ -53410,7 +53410,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "e6ae39643b628464"
+      "content_hash": "c95f3e5e35b249ce"
     },
     {
       "regimen_id": "endometrio-met-pembrolizumabe-qt-nao-incluido",
@@ -53653,7 +53653,7 @@
             {
               "eq": [
                 "msi_alto",
-                false
+                "negativo"
               ]
             },
             {
@@ -53832,7 +53832,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "f8dc393c0eb83fc3"
+      "content_hash": "e1d2592526b32493"
     },
     {
       "regimen_id": "endometrio-met-2l-io-msi-nao-incorporado",
@@ -53863,7 +53863,7 @@
             {
               "eq": [
                 "msi_alto",
-                true
+                "positivo"
               ]
             },
             {
@@ -54022,7 +54022,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "715d3c4e0fd3395a"
+      "content_hash": "0cc809ce0c8eea0c"
     },
     {
       "regimen_id": "endometrio-met-durva-olaparibe-nao-incluido",
@@ -54893,7 +54893,7 @@
             {
               "eq": [
                 "mutacao_brca",
-                true
+                "positivo"
               ]
             },
             {
@@ -55039,7 +55039,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "db8ebd92a1bffeb2"
+      "content_hash": "c5edaf7374e415aa"
     },
     {
       "regimen_id": "ovario-niraparibe-nao-incluido",
@@ -55639,7 +55639,7 @@
             {
               "eq": [
                 "mutacao_brca",
-                true
+                "positivo"
               ]
             }
           ]
@@ -55779,7 +55779,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "a6ad329e76ea57da"
+      "content_hash": "2d58308cc095d01b"
     },
     {
       "regimen_id": "ovario-carbo-gem-bevacizumabe-nao-incluido",
@@ -58350,7 +58350,7 @@
             {
               "eq": [
                 "mutacao_brca_germinativa",
-                true
+                "positivo"
               ]
             },
             {
@@ -58502,7 +58502,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "0e26bd4fefe4a764"
+      "content_hash": "26fc12491cef9e54"
     },
     {
       "regimen_id": "hcc-1l-atezolizumabe-bevacizumabe",
@@ -62545,7 +62545,7 @@
             {
               "eq": [
                 "fusao_ntrk",
-                true
+                "positivo"
               ]
             }
           ]
@@ -62700,7 +62700,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "2a24fdca7e9b3171"
+      "content_hash": "0ea41d8c2c7eac3f"
     },
     {
       "regimen_id": "osteossarcoma-neoadj-map",
@@ -63813,7 +63813,7 @@
             {
               "eq": [
                 "sstr_positivo",
-                true
+                "positivo"
               ]
             }
           ]
@@ -63963,7 +63963,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "0185b00c38cbfa9b"
+      "content_hash": "0382dbb3f4aac38d"
     },
     {
       "regimen_id": "net-baixograu-lu177-dotatate",
@@ -63994,7 +63994,7 @@
             {
               "eq": [
                 "sstr_positivo",
-                true
+                "positivo"
               ]
             }
           ]
@@ -64135,7 +64135,7 @@
         "fonte": "esquema",
         "selo": "estimativa"
       },
-      "content_hash": "d33be6f6a8e41f4c"
+      "content_hash": "ffb0ef1e7308532a"
     },
     {
       "regimen_id": "net-baixograu-alvo-nao-incluido",
@@ -70944,9 +70944,22 @@
       },
       {
         "campo": "mutacao_brca",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Mutacao brca",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "negativo",
+          "positivo"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": true
       },
       {
@@ -71045,23 +71058,62 @@
       },
       {
         "campo": "ras_wt",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Ras wt",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "selvagem",
+          "mutado"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "selvagem": "Selvagem (wild-type)",
+          "mutado": "Mutado"
+        },
         "estavel": false
       },
       {
         "campo": "braf_wt",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Braf wt",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "selvagem",
+          "mutado"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "selvagem": "Selvagem (wild-type)",
+          "mutado": "Mutado"
+        },
         "estavel": false
       },
       {
         "campo": "msi_alto",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Msi alto",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "negativo",
+          "positivo"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": true
       },
       {
@@ -71297,9 +71349,22 @@
       },
       {
         "campo": "cldn18_2_positivo",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Cldn18 2 positivo",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "negativo",
+          "positivo"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": false
       }
     ],
@@ -71337,9 +71402,22 @@
       },
       {
         "campo": "msi_alto",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Msi alto",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "negativo",
+          "positivo"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": true
       },
       {
@@ -71441,9 +71519,22 @@
       },
       {
         "campo": "pdl1_pos",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Pdl1 pos",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "negativo",
+          "positivo"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": true
       },
       {
@@ -71467,9 +71558,22 @@
       },
       {
         "campo": "pdl1_alto",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Pdl1 alto",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "negativo",
+          "positivo"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": true
       },
       {
@@ -71549,9 +71653,22 @@
       },
       {
         "campo": "pdl1_cps1",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "PD-L1 positivo (CPS ≥1)",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "negativo",
+          "positivo"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": true
       },
       {
@@ -71591,7 +71708,7 @@
         "secao": "Critérios de elegibilidade",
         "opcoes": [
           "intermediario",
-          "['intermediario', 'alto']"
+          "alto"
         ],
         "estavel": false
       },
@@ -71744,9 +71861,22 @@
       },
       {
         "campo": "alteracao_fgfr",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Alteração de FGFR2/FGFR3 (mutação ou fusão)",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "negativo",
+          "positivo"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": false
       },
       {
@@ -71983,7 +72113,8 @@
         "secao": "Critérios de elegibilidade",
         "opcoes": [
           "favoravel",
-          "['intermediario', 'alto']"
+          "intermediario",
+          "alto"
         ],
         "estavel": false
       },
@@ -72205,9 +72336,22 @@
       },
       {
         "campo": "fusao_ntrk",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Fusao ntrk",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "negativo",
+          "positivo"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": false
       },
       {
@@ -72324,9 +72468,22 @@
       },
       {
         "campo": "sstr_positivo",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Sstr positivo",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "negativo",
+          "positivo"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": false
       },
       {
@@ -72545,9 +72702,22 @@
       },
       {
         "campo": "mutacao_brca",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Mutacao brca",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "negativo",
+          "positivo"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": true
       },
       {
@@ -72980,9 +73150,22 @@
       },
       {
         "campo": "mutacao_brca_germinativa",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Mutacao brca germinativa",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "negativo",
+          "positivo"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": true
       },
       {
@@ -73113,9 +73296,22 @@
       },
       {
         "campo": "pdl1_cps1",
-        "tipo": "boolean",
+        "tipo": "enum",
         "label": "Pdl1 cps1",
         "secao": "Critérios de elegibilidade",
+        "opcoes": [
+          "nao_testado",
+          "negativo",
+          "positivo"
+        ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": true
       },
       {

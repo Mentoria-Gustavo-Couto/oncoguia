@@ -37,7 +37,7 @@
       "secao": "Critérios de elegibilidade",
       "opcoes": [
         "intermediario",
-        "['intermediario', 'alto']"
+        "alto"
       ]
     },
     {
@@ -168,9 +168,22 @@
     },
     {
       "campo": "alteracao_fgfr",
-      "tipo": "boolean",
+      "tipo": "enum",
       "label": "Alteração de FGFR2/FGFR3 (mutação ou fusão)",
-      "secao": "Critérios de elegibilidade"
+      "secao": "Critérios de elegibilidade",
+      "opcoes": [
+        "nao_testado",
+        "negativo",
+        "positivo"
+      ],
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "negativo": "Negativo",
+        "positivo": "Positivo"
+      }
     },
     {
       "campo": "pdl1_cps",
@@ -4467,7 +4480,7 @@
             {
               "eq": [
                 "alteracao_fgfr",
-                true
+                "positivo"
               ]
             },
             {

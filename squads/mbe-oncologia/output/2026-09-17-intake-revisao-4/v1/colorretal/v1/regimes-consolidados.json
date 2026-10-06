@@ -77,21 +77,60 @@
     },
     {
       "campo": "ras_wt",
-      "tipo": "boolean",
+      "tipo": "enum",
       "label": "Ras wt",
-      "secao": "Critérios de elegibilidade"
+      "secao": "Critérios de elegibilidade",
+      "opcoes": [
+        "nao_testado",
+        "selvagem",
+        "mutado"
+      ],
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "selvagem": "Selvagem (wild-type)",
+        "mutado": "Mutado"
+      }
     },
     {
       "campo": "braf_wt",
-      "tipo": "boolean",
+      "tipo": "enum",
       "label": "Braf wt",
-      "secao": "Critérios de elegibilidade"
+      "secao": "Critérios de elegibilidade",
+      "opcoes": [
+        "nao_testado",
+        "selvagem",
+        "mutado"
+      ],
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "selvagem": "Selvagem (wild-type)",
+        "mutado": "Mutado"
+      }
     },
     {
       "campo": "msi_alto",
-      "tipo": "boolean",
+      "tipo": "enum",
       "label": "Msi alto",
-      "secao": "Critérios de elegibilidade"
+      "secao": "Critérios de elegibilidade",
+      "opcoes": [
+        "nao_testado",
+        "negativo",
+        "positivo"
+      ],
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "negativo": "Negativo",
+        "positivo": "Positivo"
+      }
     },
     {
       "campo": "refratario_2_linhas",
@@ -1637,13 +1676,13 @@
             {
               "eq": [
                 "ras_wt",
-                true
+                "selvagem"
               ]
             },
             {
               "eq": [
                 "braf_wt",
-                true
+                "selvagem"
               ]
             }
           ]
@@ -1844,7 +1883,7 @@
             {
               "eq": [
                 "msi_alto",
-                true
+                "positivo"
               ]
             }
           ]

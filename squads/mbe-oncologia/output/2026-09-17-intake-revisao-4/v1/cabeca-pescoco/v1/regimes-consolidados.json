@@ -74,9 +74,22 @@
     },
     {
       "campo": "pdl1_cps1",
-      "tipo": "boolean",
+      "tipo": "enum",
       "label": "Pdl1 cps1",
-      "secao": "Critérios de elegibilidade"
+      "secao": "Critérios de elegibilidade",
+      "opcoes": [
+        "nao_testado",
+        "negativo",
+        "positivo"
+      ],
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "negativo": "Negativo",
+        "positivo": "Positivo"
+      }
     },
     {
       "campo": "segunda_linha",
@@ -1163,7 +1176,7 @@
             {
               "eq": [
                 "pdl1_cps1",
-                true
+                "positivo"
               ]
             }
           ]
@@ -1398,7 +1411,7 @@
             {
               "eq": [
                 "pdl1_cps1",
-                true
+                "positivo"
               ]
             }
           ]
@@ -1586,7 +1599,7 @@
             {
               "eq": [
                 "pdl1_cps1",
-                false
+                "negativo"
               ]
             }
           ]

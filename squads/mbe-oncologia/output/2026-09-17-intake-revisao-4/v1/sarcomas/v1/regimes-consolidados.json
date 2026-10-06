@@ -94,9 +94,22 @@
     },
     {
       "campo": "fusao_ntrk",
-      "tipo": "boolean",
+      "tipo": "enum",
       "label": "Fusao ntrk",
-      "secao": "Critérios de elegibilidade"
+      "secao": "Critérios de elegibilidade",
+      "opcoes": [
+        "nao_testado",
+        "negativo",
+        "positivo"
+      ],
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "negativo": "Negativo",
+        "positivo": "Positivo"
+      }
     },
     {
       "campo": "neoadjuvante",
@@ -1857,7 +1870,7 @@
             {
               "eq": [
                 "fusao_ntrk",
-                true
+                "positivo"
               ]
             }
           ]

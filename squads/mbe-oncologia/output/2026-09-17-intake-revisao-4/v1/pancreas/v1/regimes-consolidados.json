@@ -50,9 +50,22 @@
     },
     {
       "campo": "mutacao_brca_germinativa",
-      "tipo": "boolean",
+      "tipo": "enum",
       "label": "Mutacao brca germinativa",
-      "secao": "Critérios de elegibilidade"
+      "secao": "Critérios de elegibilidade",
+      "opcoes": [
+        "nao_testado",
+        "negativo",
+        "positivo"
+      ],
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "negativo": "Negativo",
+        "positivo": "Positivo"
+      }
     },
     {
       "campo": "sem_progressao_pos_platina",
@@ -1494,7 +1507,7 @@
             {
               "eq": [
                 "mutacao_brca_germinativa",
-                true
+                "positivo"
               ]
             },
             {

@@ -109,9 +109,22 @@
     },
     {
       "campo": "pdl1_pos",
-      "tipo": "boolean",
+      "tipo": "enum",
       "label": "Pdl1 pos",
-      "secao": "Critérios de elegibilidade"
+      "secao": "Critérios de elegibilidade",
+      "opcoes": [
+        "nao_testado",
+        "negativo",
+        "positivo"
+      ],
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "negativo": "Negativo",
+        "positivo": "Positivo"
+      }
     },
     {
       "campo": "ressecado",
@@ -132,9 +145,22 @@
     },
     {
       "campo": "pdl1_alto",
-      "tipo": "boolean",
+      "tipo": "enum",
       "label": "Pdl1 alto",
-      "secao": "Critérios de elegibilidade"
+      "secao": "Critérios de elegibilidade",
+      "opcoes": [
+        "nao_testado",
+        "negativo",
+        "positivo"
+      ],
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "negativo": "Negativo",
+        "positivo": "Positivo"
+      }
     },
     {
       "campo": "metastatico",
@@ -241,7 +267,7 @@
             {
               "eq": [
                 "pdl1_pos",
-                true
+                "positivo"
               ]
             },
             {
@@ -1575,7 +1601,7 @@
             {
               "eq": [
                 "pdl1_alto",
-                true
+                "positivo"
               ]
             },
             {
@@ -2243,7 +2269,7 @@
             {
               "eq": [
                 "pdl1_alto",
-                true
+                "positivo"
               ]
             },
             {
@@ -2472,7 +2498,7 @@
             {
               "eq": [
                 "pdl1_alto",
-                false
+                "negativo"
               ]
             },
             {
@@ -2779,7 +2805,7 @@
             {
               "eq": [
                 "pdl1_alto",
-                false
+                "negativo"
               ]
             },
             {

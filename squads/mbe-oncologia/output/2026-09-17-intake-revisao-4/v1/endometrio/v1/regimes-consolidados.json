@@ -54,9 +54,22 @@
     },
     {
       "campo": "msi_alto",
-      "tipo": "boolean",
+      "tipo": "enum",
       "label": "Msi alto",
-      "secao": "Critérios de elegibilidade"
+      "secao": "Critérios de elegibilidade",
+      "opcoes": [
+        "nao_testado",
+        "negativo",
+        "positivo"
+      ],
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "negativo": "Negativo",
+        "positivo": "Positivo"
+      }
     },
     {
       "campo": "segunda_linha",
@@ -706,7 +719,7 @@
             {
               "eq": [
                 "msi_alto",
-                true
+                "positivo"
               ]
             }
           ]
@@ -912,7 +925,7 @@
             {
               "eq": [
                 "msi_alto",
-                false
+                "negativo"
               ]
             }
           ]
@@ -1345,7 +1358,7 @@
             {
               "eq": [
                 "msi_alto",
-                false
+                "negativo"
               ]
             },
             {
@@ -1554,7 +1567,7 @@
             {
               "eq": [
                 "msi_alto",
-                true
+                "positivo"
               ]
             },
             {

@@ -62,7 +62,8 @@
       "secao": "Critérios de elegibilidade",
       "opcoes": [
         "favoravel",
-        "['intermediario', 'alto']"
+        "intermediario",
+        "alto"
       ]
     },
     {

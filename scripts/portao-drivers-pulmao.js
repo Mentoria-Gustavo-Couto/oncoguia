@@ -97,7 +97,7 @@ async function req(rota, tk) { const r = await fetch(API + rota, { headers: { Au
 
     const v0 = await vals();
     ok('D2 default do simulador: histologia=nao_escamoso e os três drivers=nao_testado', v0.histologia === 'nao_escamoso' && v0.egfr_status === 'nao_testado' && v0.alk_status === 'nao_testado' && v0.ros1_status === 'nao_testado', JSON.stringify(v0));
-    await setClin({ metastatico: true, pdl1_alto: true });
+    await setClin({ metastatico: true, pdl1_alto: 'positivo' });
     ok('D2 ★ KEYNOTE-024 com drivers não testados = 🟡 (nunca verde por presunção)', /^amarelo/.test(await sem(ID_024)), await sem(ID_024));
     const painel = await page.evaluate(() => (document.getElementById('sim-calc-live') || {}).innerText || '');
     ok('D5 painel de calculados: linha "Sem driver acionável (ou histologia escamosa)" = — com "faltam: EGFR, ALK, ROS1"', /Sem driver acionável/.test(painel) && /faltam:.*EGFR.*ALK.*ROS1/.test(painel), painel.replace(/\s+/g, ' ').slice(0, 200));
@@ -107,13 +107,13 @@ async function req(rota, tk) { const r = await fetch(API + rota, { headers: { Au
 
     await setClin({ histologia: 'escamoso' });
     ok('D3 ★ escamoso: KEYNOTE-024 = 🟢 sem nenhum driver informado', /^verde/.test(await sem(ID_024)), await sem(ID_024));
-    await setClin({ pdl1_alto: false });
+    await setClin({ pdl1_alto: 'negativo' });
     ok('D3 ★ escamoso + PD-L1<50%: KEYNOTE-407 = 🟢 e KEYNOTE-189 = 🔴', /^verde/.test(await sem(ID_407)) && /^vermelho/.test(await sem(ID_189)), `407=${await sem(ID_407)} 189=${await sem(ID_189)}`);
     await setClin({ histologia: 'nao_escamoso' });
     ok('D4 não-escamoso + PD-L1<50% + drivers não testados: 189 = 🟡 e 407 = 🔴', /^amarelo/.test(await sem(ID_189)) && /^vermelho/.test(await sem(ID_407)), `189=${await sem(ID_189)} 407=${await sem(ID_407)}`);
     await setClin({ egfr_status: 'negativo', alk_status: 'negativo', ros1_status: 'negativo' });
     ok('D4 ★ não-escamoso, três negativos: KEYNOTE-189 = 🟢', /^verde/.test(await sem(ID_189)), await sem(ID_189));
-    await setClin({ pdl1_alto: true });
+    await setClin({ pdl1_alto: 'positivo' });
     ok('D4 ★ não-escamoso, três negativos, PD-L1≥50%: KEYNOTE-024 = 🟢 e FLAURA = 🔴', /^verde/.test(await sem(ID_024)) && /^vermelho/.test(await sem(ID_FLAURA)), `024=${await sem(ID_024)} FLAURA=${await sem(ID_FLAURA)}`);
     await setClin({ egfr_status: 'mutado_sensibilizante' });
     ok('D4 ★ EGFR mutado sensibilizante: KEYNOTE-024 = 🔴 e FLAURA = 🟢', /^vermelho/.test(await sem(ID_024)) && /^verde/.test(await sem(ID_FLAURA)), `024=${await sem(ID_024)} FLAURA=${await sem(ID_FLAURA)}`);
@@ -129,11 +129,11 @@ async function req(rota, tk) { const r = await fetch(API + rota, { headers: { Au
     const primMap = {}; ev.body.campos_primitivos[T].forEach(s => primMap[s.campo] = s);
     const crit = {}, labels = {}; regs.filter(r => r.tumor === T).forEach(r => (r.elegibilidade.criterios || []).forEach(c => { if (!(c.id in crit)) { crit[c.id] = c.expr; labels[c.id] = c.label; } }));
     const casos = [
-      { metastatico: true, pdl1_alto: true, histologia: 'nao_escamoso', egfr_status: 'nao_testado', alk_status: 'nao_testado', ros1_status: 'nao_testado' },
-      { metastatico: true, pdl1_alto: true, histologia: 'escamoso' },
-      { metastatico: true, pdl1_alto: true, histologia: 'nao_escamoso', egfr_status: 'negativo', alk_status: 'negativo', ros1_status: 'negativo' },
-      { metastatico: true, pdl1_alto: true, histologia: 'nao_escamoso', egfr_status: 'mutado_sensibilizante', alk_status: 'nao_testado', ros1_status: 'nao_testado' },
-      { metastatico: true, pdl1_alto: false, histologia: 'escamoso' },
+      { metastatico: true, pdl1_alto: 'positivo', histologia: 'nao_escamoso', egfr_status: 'nao_testado', alk_status: 'nao_testado', ros1_status: 'nao_testado' },
+      { metastatico: true, pdl1_alto: 'positivo', histologia: 'escamoso' },
+      { metastatico: true, pdl1_alto: 'positivo', histologia: 'nao_escamoso', egfr_status: 'negativo', alk_status: 'negativo', ros1_status: 'negativo' },
+      { metastatico: true, pdl1_alto: 'positivo', histologia: 'nao_escamoso', egfr_status: 'mutado_sensibilizante', alk_status: 'nao_testado', ros1_status: 'nao_testado' },
+      { metastatico: true, pdl1_alto: 'negativo', histologia: 'escamoso' },
       { estadio: 'III_irressecavel', histologia: 'nao_escamoso', egfr_status: 'nao_testado' },
     ];
     const ids = [ID_024, ID_189, ID_407, ID_FLAURA, ID_PACIFIC];

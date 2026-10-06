@@ -131,9 +131,22 @@
     },
     {
       "campo": "cldn18_2_positivo",
-      "tipo": "boolean",
+      "tipo": "enum",
       "label": "Cldn18 2 positivo",
-      "secao": "Critérios de elegibilidade"
+      "secao": "Critérios de elegibilidade",
+      "opcoes": [
+        "nao_testado",
+        "negativo",
+        "positivo"
+      ],
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "negativo": "Negativo",
+        "positivo": "Positivo"
+      }
     }
   ],
   "regimes": [
@@ -3873,7 +3886,7 @@
             {
               "eq": [
                 "cldn18_2_positivo",
-                true
+                "positivo"
               ]
             },
             {

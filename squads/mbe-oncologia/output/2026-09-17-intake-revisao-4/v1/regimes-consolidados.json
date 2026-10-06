@@ -20739,7 +20739,7 @@
             {
               "eq": [
                 "pdl1_pos",
-                true
+                "positivo"
               ]
             },
             {
@@ -22073,7 +22073,7 @@
             {
               "eq": [
                 "pdl1_alto",
-                true
+                "positivo"
               ]
             },
             {
@@ -22741,7 +22741,7 @@
             {
               "eq": [
                 "pdl1_alto",
-                true
+                "positivo"
               ]
             },
             {
@@ -22970,7 +22970,7 @@
             {
               "eq": [
                 "pdl1_alto",
-                false
+                "negativo"
               ]
             },
             {
@@ -23277,7 +23277,7 @@
             {
               "eq": [
                 "pdl1_alto",
-                false
+                "negativo"
               ]
             },
             {
@@ -28339,13 +28339,13 @@
             {
               "eq": [
                 "ras_wt",
-                true
+                "selvagem"
               ]
             },
             {
               "eq": [
                 "braf_wt",
-                true
+                "selvagem"
               ]
             }
           ]
@@ -28546,7 +28546,7 @@
             {
               "eq": [
                 "msi_alto",
-                true
+                "positivo"
               ]
             }
           ]
@@ -32021,7 +32021,7 @@
             {
               "eq": [
                 "mutacao_brca",
-                true
+                "positivo"
               ]
             }
           ]
@@ -38564,7 +38564,7 @@
             {
               "eq": [
                 "cldn18_2_positivo",
-                true
+                "positivo"
               ]
             },
             {
@@ -39748,7 +39748,7 @@
             {
               "eq": [
                 "pdl1_cps1",
-                true
+                "positivo"
               ]
             }
           ]
@@ -39983,7 +39983,7 @@
             {
               "eq": [
                 "pdl1_cps1",
-                true
+                "positivo"
               ]
             }
           ]
@@ -40171,7 +40171,7 @@
             {
               "eq": [
                 "pdl1_cps1",
-                false
+                "negativo"
               ]
             }
           ]
@@ -42697,7 +42697,7 @@
             "expr": {
               "eq": [
                 "pdl1_cps1",
-                true
+                "positivo"
               ]
             }
           }
@@ -42940,7 +42940,7 @@
             {
               "eq": [
                 "pdl1_cps1",
-                true
+                "positivo"
               ]
             }
           ]
@@ -43170,7 +43170,7 @@
             {
               "eq": [
                 "pdl1_cps1",
-                false
+                "negativo"
               ]
             }
           ]
@@ -48181,7 +48181,7 @@
             {
               "eq": [
                 "alteracao_fgfr",
-                true
+                "positivo"
               ]
             },
             {
@@ -52795,7 +52795,7 @@
             {
               "eq": [
                 "msi_alto",
-                true
+                "positivo"
               ]
             }
           ]
@@ -53001,7 +53001,7 @@
             {
               "eq": [
                 "msi_alto",
-                false
+                "negativo"
               ]
             }
           ]
@@ -53434,7 +53434,7 @@
             {
               "eq": [
                 "msi_alto",
-                false
+                "negativo"
               ]
             },
             {
@@ -53643,7 +53643,7 @@
             {
               "eq": [
                 "msi_alto",
-                true
+                "positivo"
               ]
             },
             {
@@ -54668,7 +54668,7 @@
             {
               "eq": [
                 "mutacao_brca",
-                true
+                "positivo"
               ]
             },
             {
@@ -55410,7 +55410,7 @@
             {
               "eq": [
                 "mutacao_brca",
-                true
+                "positivo"
               ]
             }
           ]
@@ -58108,7 +58108,7 @@
             {
               "eq": [
                 "mutacao_brca_germinativa",
-                true
+                "positivo"
               ]
             },
             {
@@ -62281,7 +62281,7 @@
             {
               "eq": [
                 "fusao_ntrk",
-                true
+                "positivo"
               ]
             }
           ]
@@ -63543,7 +63543,7 @@
             {
               "eq": [
                 "sstr_positivo",
-                true
+                "positivo"
               ]
             }
           ]
@@ -63723,7 +63723,7 @@
             {
               "eq": [
                 "sstr_positivo",
-                true
+                "positivo"
               ]
             }
           ]
