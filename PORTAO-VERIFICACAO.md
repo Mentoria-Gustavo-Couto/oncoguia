@@ -113,6 +113,26 @@ trava avisa em vez de deixar rodar no lugar errado.
 que o backend local iniciar, e em produção no primeiro boot depois do deploy. Testar a
 migration em dev antes de fazer deploy é o ponto de ter os dois.
 
+### Antes de subir o backend: BRANCH DO NEON como ponto de retorno (obrigatório)
+
+**Crie um branch do Neon a partir da produção ANTES de cada deploy que carregue migration.**
+É um clique no console (copy-on-write, barato) e dá o snapshot EXATO do banco anterior.
+
+Por que isto é regra e não zelo: a rede de segurança de uma migration **não é o `down()`**.
+Migration que só cria estrutura reverte bem; migration que **reescreve dado** quase nunca
+reverte — e a primeira do projeto a fazer isso é a `1790380800000-VocabularioExameNaoTestado`
+(Rodada B / Fase 2a), cujo `down()` **aborta de propósito**, com o motivo escrito no topo do
+arquivo: `"positivo"` convertido pelo `up()` é indistinguível de `"positivo"` digitado depois
+do deploy, e `"nao_testado"` não tem equivalente booleano — com o corpus antigo ele passaria a
+ser lido como POSITIVO (`Boolean("nao_testado") === true`), fazendo todo exame não pedido
+nascer 🟢. Um `down()` que roda sem erro e entrega isso é pior que nenhum.
+
+Com o branch, reverter é: apontar a aplicação para o branch anterior + republicar o corpus
+anterior. Sem ambiguidade de procedência e sem perder `nao_testado`.
+
+Regra prática: **se a migration tem `UPDATE`/`DELETE` em tabela de dado (não `CREATE`/`ALTER`),
+o branch é pré-requisito do deploy, e o `down()` não conta como plano de volta.**
+
 ---
 
 ## Portão A — DADOS (saída do squad)

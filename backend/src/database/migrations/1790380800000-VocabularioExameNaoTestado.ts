@@ -1,5 +1,44 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
+// =====================================================================================
+// ATENÇÃO — MIGRATION DE MÃO ÚNICA. O down() NÃO REVERTE: ele ABORTA, de propósito.
+//
+// Esta é a primeira migration do projeto que REESCREVE DADO CLÍNICO (as anteriores só
+// criavam estrutura). Reverter a conversão é impossível sem perder informação e sem
+// inventar resultado de exame. Três motivos, todos verificados no banco, não deduzidos:
+//
+//   1. NÃO HÁ COMO SABER O QUE O up() CONVERTEU. Depois do deploy, registro novo nasce
+//      enum. Um `"positivo"` que o up() criou a partir de `true` e um `"positivo"` que o
+//      oncologista digitou na semana seguinte são o MESMO BYTE. A migration não grava
+//      procedência, então um down() trataria os dois igual — não seria o inverso do up(),
+//      seria "re-tipar tudo para booleano", que é outra operação.
+//
+//   2. `nao_testado` NÃO TEM EQUIVALENTE BOOLEANO — e o que acontece com ele é o pior
+//      caso deste arquivo. Um down() não teria para onde mandá-lo e o deixaria gravado
+//      como a string "nao_testado". Com o corpus revertido para booleano, o motor faz
+//      `eqv(a, b)` = `Boolean(a) === b` (app/index.html:1429 e semaforo.js:14): e
+//      `Boolean("nao_testado")` é TRUE, porque string não-vazia é truthy. Ou seja:
+//
+//          regra `eq [pdl1_pos, true]`  + valor "nao_testado"  ->  VERDADEIRO  (🟢)
+//
+//      Todo exame NUNCA PEDIDO passaria a ser lido como POSITIVO. Um paciente sem PD-L1
+//      feito apareceria como PD-L1 positivo e a imunoterapia nasceria verde. É o inverso
+//      exato do que esta rodada corrigiu, é silencioso, e atinge MUITA linha: como
+//      `nao_testado` é a PRIMEIRA opção do enum, ele é o default da tela — todo save
+//      posterior ao deploy grava `nao_testado` nos campos que o médico não tocou.
+//
+//   3. Os 5 enums da leva 2 (her2/rh/brca em mama, braf em melanoma, her2 em esôfago) não
+//      são tocados pelo up() — só ganharam a opção `nao_testado` no corpus. Um down() do
+//      corpus tiraria essa opção do domínio e deixaria os `nao_testado` já gravados fora
+//      do domínio, sem nenhuma migration cuidando deles.
+//
+// A REDE DE SEGURANÇA É O BRANCH DO NEON, NÃO O down(). Antes de subir o backend, crie um
+// branch do Neon a partir da produção: é um clique, e dá o ponto de retorno EXATO do banco
+// inteiro, sem ambiguidade de procedência e sem perder `nao_testado`. Reverter = apontar a
+// aplicação de volta para aquele branch e republicar o corpus antigo. Ver a seção de deploy
+// em PORTAO-VERIFICACAO.md.
+// =====================================================================================
+
 // Rodada B / Fase 2a — a METADE GRAVADA da conversão "exame não pedido ⇒ 🟡".
 //
 // O corpus trocou 15 biomarcadores de booleano para enum (`true` -> "positivo"). O valor que
@@ -74,21 +113,20 @@ export class VocabularioExameNaoTestado1790380800000 implements MigrationInterfa
     console.log(`[VocabularioExameNaoTestado] total convertido: ${total} valor(es).`);
   }
 
-  // Volta os tokens para booleano. Serve para desfazer o deploy junto com o corpus antigo —
-  // o corpus e o banco têm de andar no mesmo vocabulário, nos dois sentidos.
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    for (const [tabela, coluna] of COLUNAS) {
-      for (const [campo, [seTrue, seFalse]] of Object.entries(MAPA)) {
-        for (const [texto, bool] of [[seTrue, 'true'], [seFalse, 'false']] as const) {
-          await queryRunner.query(
-            `UPDATE ${tabela}
-                SET ${coluna} = jsonb_set(${coluna}::jsonb, $1, $2::jsonb, false)
-              WHERE ${coluna} IS NOT NULL
-                AND ${coluna}::jsonb ->> $3 = $4`,
-            [`{${campo}}`, bool, campo, texto],
-          );
-        }
-      }
-    }
+  // MÃO ÚNICA — ver o bloco no topo do arquivo. Este down() aborta em vez de reverter.
+  //
+  // Um down() que "funciona" aqui é pior que nenhum: ele roda sem erro, parece ter
+  // desfeito, e deixa todo exame não pedido sendo lido como POSITIVO (motivo 2 lá em cima).
+  // Falhar alto é o comportamento correto — quem precisa voltar usa o branch do Neon.
+  public async down(): Promise<void> {
+    throw new Error(
+      'VocabularioExameNaoTestado1790380800000: migration de MÃO ÚNICA — down() não é suportado.\n' +
+      '  Reverter em SQL é impossível sem perder informação:\n' +
+      '    • "positivo" convertido pelo up() é indistinguível de "positivo" digitado depois do deploy;\n' +
+      '    • "nao_testado" não tem equivalente booleano e, com o corpus antigo, passaria a ser lido\n' +
+      '      como POSITIVO (Boolean("nao_testado") === true) — todo exame não pedido viraria 🟢.\n' +
+      '  Para voltar: aponte a aplicação para o BRANCH do Neon criado antes do deploy e republique\n' +
+      '  o corpus anterior. Ver a seção de deploy em PORTAO-VERIFICACAO.md.',
+    );
   }
 }

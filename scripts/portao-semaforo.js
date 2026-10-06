@@ -16,6 +16,10 @@
 //      nessa situação falha o portão antes do deploy. As exceções conhecidas (duvidosos de
 //      anatomopatológico + o que ficou para a Fase 2b) são explícitas.
 //   S7 remoções — os 6 campos sem uso retirados na Fase 2a não podem reaparecer na tela.
+//   S8 portão-fotografia — nenhum check de NENHUM portão pode justificar o esperado com
+//      "comportamento existente"/"como está hoje". Portão é especificação, não fotografia:
+//      o que descreve o sistema de hoje não consegue acusar o defeito de hoje. Regra (b)
+//      do CLAUDE.md.
 //   S3 ★ afirmativo — para cada (campo × regime que o referencia), resolve uma atribuição
 //      DISCRIMINANTE do resto da regra (uma em que o exame é o que decide: 🟢 com um valor,
 //      🔴 com outro) e então deixa o exame em branco: o veredito tem de ser 🟡. Exigir que
@@ -57,6 +61,11 @@ const ENUMS_EXAME = [
 const JA_CORRETOS = [['pulmao-nsclc', 'egfr_status'], ['pulmao-nsclc', 'alk_status'],
   ['pulmao-nsclc', 'ros1_status'], ['cabeca-pescoco', 'histologia_salivar']];
 const TODOS_EXAME = CONVERTIDOS.concat(ENUMS_EXAME);
+
+// ---- S6: ONDE o clínico gravado mora. Escopo DECLARADO, e impresso quando o check passa.
+// A primeira versão do S6 varria só a segunda coluna e por isso passou verde com 3 valores
+// velhos na primeira — a biologia travada (HER2, RH, BRCA, PD-L1) mora em valores_estaveis.
+const ESCOPO_S6 = ['pacientes.valores_estaveis', 'selecoes_protocolo.dados_clinicos'];
 
 // ---- S7: campos removidos na Fase 2a (0 usos). Nenhum pode reaparecer na tela. ----
 const REMOVIDOS = [
@@ -279,7 +288,52 @@ function camposDaRegra(node, crit, out, seen, nums) {
       const dom = dominio[`${r.tumor}|${k}`];
       if (dom && !dom.has(String(v))) legado.push(`${r.onde} #${r.id} (${r.tumor}): ${k}=${JSON.stringify(v)} — fora do domínio`);
     }
-    ok(`S6 ★ nenhum clínico gravado no vocabulário antigo (${linhas.length} linhas em pacientes.valores_estaveis + selecoes_protocolo.dados_clinicos) — viraria 🔴 silencioso`, legado.length === 0, legado.slice(0, 5).join(' | '));
+    // Regra (a) do CLAUDE.md: check que passa diz ONDE olhou. O escopo vem contado POR
+    // COLUNA, não num total agregado — foi exatamente um escopo errado (só
+    // selecoes_protocolo) que fez este check passar verde quando havia 3 valores velhos
+    // em pacientes.valores_estaveis. Com o escopo impresso, dá para conferir se ele está
+    // olhando no lugar certo sem ler o código.
+    const porColuna = {};
+    for (const r of linhas) porColuna[r.onde] = (porColuna[r.onde] || 0) + 1;
+    const escopo = ESCOPO_S6.map((c) => `${c}=${porColuna[c] ?? 0}`).join(' · ');
+    const naoVarridas = Object.keys(porColuna).filter((c) => !ESCOPO_S6.includes(c));
+    ok(`S6 ★ nenhum clínico gravado no vocabulário antigo — escopo varrido: ${escopo} (${linhas.length} linhas, ${Object.keys(dominio).length} campos de exame)`,
+      legado.length === 0 && naoVarridas.length === 0,
+      [...legado.slice(0, 5), ...naoVarridas.map((c) => `coluna fora do escopo declarado: ${c}`)].join(' | '));
+    // ---------- S8 portão-fotografia ----------
+    // Regra (b) do CLAUDE.md: portão afirma o que DEVERIA ser verdade, nunca o que É.
+    // Um check cuja justificativa diz "comportamento existente" parou de ser especificação
+    // e virou fotografia: ele defende o defeito contra quem tentar corrigi-lo. Foi o caso do
+    // L2 do portao-lote4, que afirmava "CPS não marcado = 🔴 (booleano default false —
+    // comportamento existente do simulador)" — exatamente o defeito que esta rodada corrigiu.
+    // Varredura manual pega o caso; este check pega a CLASSE, inclusive em portão futuro.
+    const FRASES = [
+      /comportamento\s+(existente|atual|de\s+hoje)/i,
+      /como\s+(est[áa]|funciona)\s+hoje/i,
+      /comportamento\s+j[áa]\s+existente/i,
+      /mant[ée]m\s+o\s+comportamento\s+(atual|existente)/i,
+      /(por|pra|para)\s+enquanto\s+[ée]\s+assim/i,
+    ];
+    const fs2 = require('fs');
+    const dirPortoes = path.join(ROOT, 'scripts');
+    const fotografias = [];
+    for (const arq of fs2.readdirSync(dirPortoes).filter((f) => /^portao-.*\.js$/.test(f))) {
+      const linhas2 = fs2.readFileSync(path.join(dirPortoes, arq), 'utf8').split('\n');
+      linhas2.forEach((l, i) => {
+        if (!/\bok\s*\(/.test(l)) return;                 // só o RÓTULO de um check
+        // Dispensa explícita e auditável: a linha do próprio S8 CITA as frases que procura.
+        // O sentinel é visível no diff — usá-lo para calar um achado de verdade aparece na
+        // revisão, que é o ponto de ser um comentário e não uma regex esperta.
+        if (/s8:ignore/.test(l)) return;
+        const m = l.match(/ok\s*\(\s*(`[^`]*`|'[^']*'|"[^"]*")/);
+        if (!m) return;
+        if (FRASES.some((re) => re.test(m[1]))) fotografias.push(`${arq}:${i + 1} ${m[1].slice(0, 110)}`);
+      });
+    }
+    const nPortoes = fs2.readdirSync(dirPortoes).filter((f) => /^portao-.*\.js$/.test(f)).length;
+    ok(`S8 ★ nenhum portão justifica o esperado com o comportamento de hoje — escopo varrido: scripts/portao-*.js (${nPortoes} arquivos, ${FRASES.length} expressões)`, // s8:ignore
+      fotografias.length === 0, fotografias.slice(0, 3).join(' | '));
+
     ok('Z somente leitura: nenhum POST/PUT/PATCH/DELETE saiu do browser', escritas.length === 0, escritas[0] || '');
     ok('Z console limpo', errs.length === 0, errs[0] || '');
     await ctx.close();

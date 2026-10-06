@@ -110,3 +110,41 @@ app `neonctl` nas autorizações da conta.
 ## Portas (obrigatório)
 
 Esta máquina roda vários projetos simultâneos. O OncoGuia usa: backend **3005** (`http://localhost:3005/api`), app estático **5173**, dashboard **5175**. A porta 3001 pertence ao Hospital Virtual — NUNCA use, e NUNCA mate processos de outros projetos para liberar porta. Mapa completo e regras: `~/Antigravity/PORTS.md` (e `~/Antigravity/CLAUDE.md`).
+
+## Portões e checks (obrigatório)
+
+Duas regras de classe, cada uma paga com um defeito que passou.
+
+### (a) Check que passa tem de dizer ONDE olhou
+
+**Todo check afirmativo reporta o ESCOPO que varreu, não só a contagem.** Tabela e coluna,
+caminho de arquivo, tumor — o que delimita a busca. Um verde sem escopo não é prova: é a
+afirmação de que alguém procurou em algum lugar.
+
+Por que: na Rodada B / Fase 2a, o check S6 do `portao-semaforo` afirmava que nenhum clínico
+gravado carregava valor do vocabulário antigo. Passou, e eu relatei "dev está limpo". Ele
+varria `selecoes_protocolo.dados_clinicos` — mas a biologia travada (HER2, RH, BRCA, PD-L1,
+justamente os campos convertidos) mora em `pacientes.valores_estaveis`. No lugar certo havia
+3 valores, e cada um viraria 🔴 silencioso depois do deploy.
+
+**Verde de quem olhou no lugar errado é pior que vermelho**, porque encerra a investigação:
+vermelho manda procurar, verde manda seguir. O S6 hoje imprime as duas colunas que varreu, e
+é por isso que dá para conferir se o escopo está certo sem ler o código do check.
+
+### (b) Portão afirma o que DEVERIA ser verdade, nunca o que É
+
+**Portão é especificação, não fotografia.** Se o comportamento esperado de um check for
+escrito a partir do que o sistema faz hoje, ele deixa de poder acusar o que hoje está errado
+— e passa a defender o defeito contra quem tentar corrigi-lo.
+
+Por que: o `portao-lote4` tinha o check
+`"L2 A18: CPS não marcado no simulador = 🔴 (booleano default false — comportamento existente do simulador)"`.
+Ele afirmava exatamente o defeito que a Rodada B foi corrigir, com a justificativa escrita no
+próprio rótulo. Quando o defeito foi corrigido, o portão falhou — o portão certo teria falhado
+no dia em que o defeito entrou.
+
+Sinal de alarme, e é literal: justificativa de check que diga **"comportamento existente"**,
+**"como está hoje"**, **"comportamento atual"** ou equivalente. O check **S8** do
+`portao-semaforo` varre os rótulos de todos os portões atrás dessas expressões e falha —
+a classe inteira, não o caso. Se um check precisa mesmo registrar comportamento conhecido e
+não-ideal, isso é dívida: vai para o `BACKLOG.md`, não para o rótulo de um portão.
