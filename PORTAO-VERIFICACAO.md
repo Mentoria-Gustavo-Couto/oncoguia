@@ -752,10 +752,14 @@ Este portão é **afirmativo**: não verifica que nada quebrou, afirma uma propr
   código, como o `E1` do portão da secretaria. Campo que suma do corpus falha AQUI, não em
   produção. Cada um: enum, token indeterminado em 1ª opção (é isso que faz o `primDefault`
   cair no 🟡), `indeterminado` e `rotulos` declarados.
-- **S2 vigilância**: varre o corpus inteiro atrás de booleano de biomarcador sem
-  `indeterminado`. Campo novo nessa situação falha antes do deploy. As exceções conhecidas
-  (duvidosos de anatomopatológico + o que ficou para a Fase 2b) são explícitas no script —
-  tirar um de lá sem converter o campo faz S2 falhar.
+- **S2 vigilância**: varre o corpus inteiro atrás de campo de EXAME sem `indeterminado`,
+  **nos dois tipos** — booleano de biomarcador, e enum cujo domínio é resultado de exame
+  (`positivo`/`negativo`/`selvagem`/`mutado`…). Nos dois o default da tela assume um resultado
+  que ninguém mediu: `false` no booleano, `opcoes[0]` no enum. Campo novo nessa situação falha
+  antes do deploy. As exceções conhecidas (duvidosos de anatomopatológico + o que ficou para a
+  Fase 2b) são explícitas no script — tirar um de lá sem converter o campo faz S2 falhar.
+- **S7 remoções**: os 6 campos sem uso retirados na Fase 2a não podem reaparecer no
+  formulário. Campo ressuscitado por um intake futuro falha aqui.
 - **S3 afirmativo**: para cada um dos 27 pares (campo × regime), resolve uma atribuição
   **discriminante** do resto da regra — uma em que o exame é o que decide (🟢 com um valor,
   🔴 com outro) — e então deixa o exame em branco: tem de dar 🟡. Exigir que seja
@@ -766,12 +770,23 @@ Este portão é **afirmativo**: não verifica que nada quebrou, afirma uma propr
   par volta a discriminar. É o teste que prova a correção.
 - **S5 paridade**: os mesmos 27 casos nos DOIS interpretadores (`evalExpr` da app e o
   `semaforo.ts` compilado). Se divergirem, o defeito é maior que o corrigido.
-- **S6 dado já gravado**: a conversão troca o DOMÍNIO do campo. Uma seleção antiga com
+- **S6 dado já gravado**: a conversão troca o DOMÍNIO do campo. Uma biologia antiga com
   `pdl1_alto: true` não vira amarelo — vira 🔴 em silêncio (`true` ≠ `"positivo"`), que é pior
-  que o defeito corrigido. S6 varre `selecoes_protocolo.dados_clinicos` atrás disso.
+  que o defeito corrigido. S6 varre **dois lugares**, e o primeiro é o que importa:
+  `pacientes.valores_estaveis` (a biologia travada — é AQUI que estes campos vivem) e
+  `selecoes_protocolo.dados_clinicos`. Uma primeira versão deste check varria só a segunda
+  tabela e por isso reportou "0 afetadas" quando havia 3 (pacientes 12 e 13 em dev).
+  O domínio é indexado por **(tumor, campo)**: `her2` existe em mama e em esôfago com opções
+  diferentes, e indexar só pelo nome do campo dá falso positivo.
+  O S6 usa `@neondatabase/serverless` (WebSocket na 443), não `pg` cru — a 5432 é bloqueada
+  nesta rede, como diz `data-source.ts`.
 
-Roda 2×. **Antes de qualquer deploy, S6 tem de ser conferido contra PRODUÇÃO** — o portão só
-alcança o banco de dev, e é em produção que existe paciente real com clínico preenchido.
+A correção do dado gravado é a migration `1790380800000-VocabularioExameNaoTestado`, que roda
+sozinha no deploy (`migrationsRun: true`) e converte os dois lugares. **Antes do deploy, rode
+`scripts/diagnostico-vocabulario-prod.sql` no Neon de produção** para medir o que ela vai
+mexer; depois do deploy, a consulta 1 do mesmo arquivo tem de voltar VAZIA.
+
+Roda 2×.
 
 Quem muda o vocabulário muda os chamadores: o `portao-drivers-pulmao` passava
 `pdl1_alto: true/false` e foi atualizado para `'positivo'/'negativo'` na mesma mudança. Um

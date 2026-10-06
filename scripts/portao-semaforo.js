@@ -9,9 +9,13 @@
 //      portão da secretaria). Um campo que suma do corpus por acidente falha AQUI, não em
 //      produção. Cada um tem de ser enum, com `nao_testado` PRIMEIRO (é o que faz o
 //      primDefault da tela cair no indeterminado), `indeterminado` declarado e `rotulos`.
-//   S2 vigilância — varre o corpus INTEIRO atrás de booleano de biomarcador sem
-//      `indeterminado`. Campo novo nessa situação falha o portão antes do deploy. A lista
-//      de exceções conhecidas (duvidosos + o que ficou para a Fase 2b) é explícita.
+//   S2 vigilância — varre o corpus INTEIRO atrás de campo de EXAME sem `indeterminado`,
+//      nos dois tipos: booleano de biomarcador, e enum cujo domínio é um resultado de exame
+//      (positivo/negativo/selvagem/mutado...). Nos dois o default da tela assume um
+//      resultado que ninguém mediu — `false` no booleano, `opcoes[0]` no enum. Campo novo
+//      nessa situação falha o portão antes do deploy. As exceções conhecidas (duvidosos de
+//      anatomopatológico + o que ficou para a Fase 2b) são explícitas.
+//   S7 remoções — os 6 campos sem uso retirados na Fase 2a não podem reaparecer na tela.
 //   S3 ★ afirmativo — para cada (campo × regime que o referencia), resolve uma atribuição
 //      DISCRIMINANTE do resto da regra (uma em que o exame é o que decide: 🟢 com um valor,
 //      🔴 com outro) e então deixa o exame em branco: o veredito tem de ser 🟡. Exigir que
@@ -33,7 +37,8 @@ const { exigirBancoDeDev } = require('./portao-banco');
 const APP = process.env.PORTAO_APP || 'http://localhost:5173/index.html';
 const API = process.env.PORTAO_API || 'http://localhost:3005/api';
 
-// ---- S1: a intenção. Campos convertidos na Fase 2a (biomarcador booleano -> enum). ----
+// ---- S1: a intenção. Campos de EXAME que têm de carregar o token indeterminado. ----
+// Leva 1 — biomarcador BOOLEANO -> enum (o default `false` da tela virava "negativo").
 const CONVERTIDOS = [
   ['bexiga', 'alteracao_fgfr'], ['cabeca-pescoco', 'pdl1_cps1'], ['colo-utero', 'pdl1_cps1'],
   ['colorretal', 'ras_wt'], ['colorretal', 'braf_wt'], ['colorretal', 'msi_alto'],
@@ -42,9 +47,23 @@ const CONVERTIDOS = [
   ['pancreas', 'mutacao_brca_germinativa'], ['prostata', 'mutacao_brca'],
   ['pulmao-nsclc', 'pdl1_pos'], ['pulmao-nsclc', 'pdl1_alto'], ['sarcomas', 'fusao_ntrk'],
 ];
+// Leva 2 — ENUM de exame (o default `opcoes[0]` da tela assumia um RESULTADO clínico:
+// her2=positivo em mama fazia 14 regimes anti-HER2 nascerem verdes sem o exame).
+const ENUMS_EXAME = [
+  ['mama', 'her2'], ['mama', 'rh'], ['mama', 'brca'],
+  ['melanoma', 'braf'], ['esofago-estomago', 'her2'],
+];
 // Já vinham corretos da decisão de 16/09 (drivers) e do lote 4 (salivar).
 const JA_CORRETOS = [['pulmao-nsclc', 'egfr_status'], ['pulmao-nsclc', 'alk_status'],
   ['pulmao-nsclc', 'ros1_status'], ['cabeca-pescoco', 'histologia_salivar']];
+const TODOS_EXAME = CONVERTIDOS.concat(ENUMS_EXAME);
+
+// ---- S7: campos removidos na Fase 2a (0 usos). Nenhum pode reaparecer na tela. ----
+const REMOVIDOS = [
+  ['bexiga', 'pdl1_positivo'], ['bexiga', 'inelegivel_platina'], ['mama', 'm'],
+  ['renal', 'alto_risco_recidiva'], ['penis', 'alto_risco_pos_cirurgia'],
+  ['testiculo', 'pos_orquiectomia'],
+];
 
 // ---- S2: booleanos que PARECEM biomarcador e seguem sem `indeterminado`, de propósito. ----
 // Duvidosos (dado de anatomopatológico, que costuma vir no laudo padrão — "não consta" não é
@@ -58,7 +77,9 @@ const EXCECOES = new Set([
   'fragil_mgmt_metilado',         // glioblastoma — composto: fragilidade clínica + MGMT
   'cps1_ou_hpv_pos',              // cabeça e pescoço — composto: dois exames num campo
   'variante_neuroendocrina', 'variante_agressiva', 'histologia_pequenas_celulas', // próstata: Fase 2b
-  'pdl1_positivo',                // bexiga — 0 usos, fila de remoção
+  // Enums de laudo/estadiamento/escore, fora pelo MESMO corte dos booleanos de patologia:
+  'histologia', 'grau', 'grau_nuclear', 'estadio_pt', 'estadio_pn', 'estadio_t',
+  'child_pugh', 'risco_igcccg', 'risco_imdc',
 ]);
 const PADRAO_BIOMARCADOR = /^(pdl1|msi|brca|ras|braf|her2|alk|egfr|ros1|ntrk|fgfr|cldn|sstr|mgmt|mutacao|fusao|alteracao|histologia|variante|invasao_linfo|diferenciacao|nec_)/;
 
@@ -66,21 +87,34 @@ const R = [];
 const ok = (n, c, x) => { R.push([c, n, x]); console.log((c ? 'PASS' : 'FAIL') + '  ' + n + (x ? '  [' + String(x).slice(0, 220) + ']' : '')); };
 const req = async (rota, tk) => { const r = await fetch(API + rota, { headers: { Authorization: 'Bearer ' + tk } }); return { status: r.status, body: await r.json().catch(() => null) }; };
 
-// candidatos de valor para resolver "o resto da regra satisfeito"
-function candidatos(spec) {
+// Candidatos de valor para resolver "o resto da regra satisfeito". Um campo NUMÉRICO não
+// tem domínio enumerável: os candidatos saem das constantes com que a própria regra o
+// compara (c-1, c, c+1), que é o suficiente para cair dos dois lados de qualquer limiar.
+// Sem isso, campo numérico ficava sempre vazio → a regra inteira ficava indeterminada e o
+// par parecia "não-discriminante" quando na verdade era o portão que não sabia preenchê-lo.
+function candidatos(spec, nums) {
   if (!spec) return [true, false];
   const ind = new Set((spec.indeterminado || []).map(String));
   if (spec.tipo === 'boolean') return [true, false];
   if (Array.isArray(spec.opcoes) && spec.opcoes.length) return spec.opcoes.filter(o => !ind.has(String(o)));
-  return [];
+  const cs = [...(nums || [])];
+  if (!cs.length) return [];
+  const out = new Set();
+  cs.forEach(c => { out.add(c - 1); out.add(c); out.add(c + 1); });
+  return [...out];
 }
-function camposDaRegra(node, crit, out, seen) {
+// Devolve os campos da regra e, por campo, as constantes numéricas comparadas com ele.
+function camposDaRegra(node, crit, out, seen, nums) {
   if (!node || typeof node !== 'object') return;
   const k = Object.keys(node)[0], v = node[k];
-  if (k === 'and' || k === 'or') v.forEach(c => camposDaRegra(c, crit, out, seen));
-  else if (k === 'not') camposDaRegra(v, crit, out, seen);
-  else if (k === 'ref') { if (!seen.has(v) && crit[v]) { seen.add(v); camposDaRegra(crit[v], crit, out, seen); } }
-  else if (['eq','ne','gt','gte','lt','lte','in'].includes(k)) { out.add(v[0]); if (typeof v[1] === 'number') (out.nums = out.nums || []).push(v[1]); }
+  if (k === 'and' || k === 'or') v.forEach(c => camposDaRegra(c, crit, out, seen, nums));
+  else if (k === 'not') camposDaRegra(v, crit, out, seen, nums);
+  else if (k === 'ref') { if (!seen.has(v) && crit[v]) { seen.add(v); camposDaRegra(crit[v], crit, out, seen, nums); } }
+  else if (['eq','ne','gt','gte','lt','lte','in'].includes(k)) {
+    out.add(v[0]);
+    const vals = Array.isArray(v[1]) ? v[1] : [v[1]];
+    vals.forEach(x => { if (typeof x === 'number') { if (!nums[v[0]]) nums[v[0]] = new Set(); nums[v[0]].add(x); } });
+  }
 }
 
 (async () => {
@@ -96,7 +130,7 @@ function camposDaRegra(node, crit, out, seen) {
 
     // ---------- S1 intenção ----------
     let s1 = [];
-    for (const [t, campo] of CONVERTIDOS.concat(JA_CORRETOS)) {
+    for (const [t, campo] of TODOS_EXAME.concat(JA_CORRETOS)) {
       const s = (CP[t] || []).find(x => x.campo === campo);
       if (!s) { s1.push(`${t}/${campo}: AUSENTE do corpus`); continue; }
       if (s.tipo !== 'enum') s1.push(`${t}/${campo}: tipo=${s.tipo}, esperado enum`);
@@ -104,17 +138,28 @@ function camposDaRegra(node, crit, out, seen) {
       if (!(s.indeterminado || []).length) s1.push(`${t}/${campo}: sem `+'`indeterminado`');
       if (!s.rotulos) s1.push(`${t}/${campo}: sem `+'`rotulos`');
     }
-    ok(`S1 ★ lista de intenção: ${CONVERTIDOS.length} convertidos + ${JA_CORRETOS.length} já corretos — todos enum, token indeterminado em 1º, indeterminado e rotulos declarados`, s1.length === 0, s1.slice(0, 3).join(' | '));
+    ok(`S1 ★ lista de intenção: ${CONVERTIDOS.length} booleanos convertidos + ${ENUMS_EXAME.length} enums de exame + ${JA_CORRETOS.length} já corretos — todos enum, token indeterminado em 1ª opção, indeterminado e rotulos declarados`, s1.length === 0, s1.slice(0, 3).join(' | '));
 
     // ---------- S2 vigilância ----------
     const suspeitos = [];
+    // Um campo de exame sem `indeterminado` é defeito em QUALQUER tipo: no booleano o
+    // default da tela é `false`, no enum é `opcoes[0]` — os dois assumem um resultado que
+    // ninguém mediu. Por isso a varredura cobre os dois tipos.
+    const TOKENS_RESULTADO = /^(positivo|negativo|selvagem|mutado|mutado_germinativo|baixa_expressao|instavel|estavel)$/;
     for (const t of Object.keys(CP)) for (const s of CP[t]) {
-      if (s.tipo !== 'boolean') continue;
-      if (!PADRAO_BIOMARCADOR.test(s.campo)) continue;
       if (EXCECOES.has(s.campo)) continue;
-      suspeitos.push(`${t}/${s.campo}`);
+      const nomeSuspeito = PADRAO_BIOMARCADOR.test(s.campo);
+      if (s.tipo === 'boolean') { if (nomeSuspeito) suspeitos.push(`${t}/${s.campo} (booleano)`); continue; }
+      if (s.tipo !== 'enum' || (s.indeterminado || []).length) continue;
+      // enum cujo DOMÍNIO é um resultado de exame (positivo/negativo/selvagem/mutado...)
+      const opts = (s.opcoes || []).map(String);
+      if (opts.some(o => TOKENS_RESULTADO.test(o))) suspeitos.push(`${t}/${s.campo} (enum ${opts.join('|')})`);
     }
-    ok('S2 ★ nenhum booleano de biomarcador NOVO sem `indeterminado` (campo novo nessa situação falha aqui, antes do deploy)', suspeitos.length === 0, suspeitos.join(', '));
+    ok('S2 ★ nenhum campo de exame NOVO sem `indeterminado` — booleano de biomarcador ou enum cujo domínio é resultado de exame (campo novo nessa situação falha aqui, antes do deploy)', suspeitos.length === 0, suspeitos.join(', '));
+
+    // ---------- S7 remoções ----------
+    const ressuscitados = REMOVIDOS.filter(([t, c]) => (CP[t] || []).some(s => s.campo === c));
+    ok(`S7 ★ os ${REMOVIDOS.length} campos removidos na Fase 2a não voltaram ao formulário`, ressuscitados.length === 0, ressuscitados.map(x => x.join('/')).join(', '));
 
     // ---------- browser ----------
     const ctx = await browser.newContext(); const page = await ctx.newPage();
@@ -148,12 +193,12 @@ function camposDaRegra(node, crit, out, seen) {
     // ---------- S3 afirmativo ----------
     const falhasAmarelo = [], falhasVacuo = [], falhasParidade = [];
     let casos = 0;
-    for (const [t, campo] of CONVERTIDOS) {
+    for (const [t, campo] of TODOS_EXAME) {
       const spec = (CP[t] || []).find(x => x.campo === campo);
       const crit = {}; REGS.filter(r => r.tumor === t).forEach(r => (r.elegibilidade.criterios || []).forEach(c => { if (!(c.id in crit)) crit[c.id] = c.expr; }));
       const alvos = REGS.filter(r => r.tumor === t && JSON.stringify(r.elegibilidade).includes(`"${campo}"`));
       for (const reg of alvos) {
-        const set = new Set(); camposDaRegra(reg.elegibilidade.regra, crit, set, new Set());
+        const set = new Set(), nums = {}; camposDaRegra(reg.elegibilidade.regra, crit, set, new Set(), nums);
         const outros = [...set].filter(c => c !== campo);
         const primMap = {}; (CP[t] || []).forEach(s => primMap[s.campo] = s);
         // resolve: procura atribuição dos OUTROS campos que deixa a regra decidida com o exame preenchido
@@ -162,14 +207,14 @@ function camposDaRegra(node, crit, out, seen) {
         // 🔴 causado por OUTRO campo (ex.: histologia errada) e concluiria, falsamente, que
         // o exame em branco "pintou vermelho" — quando o vermelho nem dependia dele.
         let achou = null;
-        const listas = outros.map(c => candidatos(primMap[c]));
+        const listas = outros.map(c => candidatos(primMap[c], nums[c]));
         const combos = listas.reduce((a, l) => a * Math.max(l.length, 1), 1);
         if (combos > 4000) { continue; }
         for (let n = 0; n < combos && !achou; n++) {
           let rest = n; const over = {};
           for (let i = 0; i < outros.length; i++) { const l = listas[i]; if (!l.length) continue; over[outros[i]] = l[rest % l.length]; rest = Math.floor(rest / l.length); }
           const vistos = [];
-          for (const val of candidatos(spec)) {
+          for (const val of candidatos(spec, nums[campo])) {
             const r = await vereditoApp(reg.regimen_id, t, { ...over, [campo]: val });
             vistos.push([val, r.v]);
           }
@@ -206,18 +251,35 @@ function camposDaRegra(node, crit, out, seen) {
     // Uma seleção antiga com booleano nesses campos não vira amarelo — vira VERMELHO em
     // silêncio (`true` ≠ "positivo"), que é pior que o defeito corrigido. Aqui isso é
     // verificado no banco de DEV; em produção tem de ser conferido ANTES do deploy.
-    const { Client } = require(path.join(ROOT, 'backend/node_modules/pg'));
+    // Driver do próprio projeto: @neondatabase/serverless (WebSocket/HTTP na 443). `pg`
+    // cru não serve — a 5432 é bloqueada nesta rede, como diz data-source.ts.
+    //
+    // O clínico mora em DOIS lugares, e o que importa aqui é o PRIMEIRO: a biologia travada
+    // (HER2, RH, BRCA, PD-L1...) vive em pacientes.valores_estaveis. Uma versão anterior
+    // deste check varria só selecoes_protocolo e por isso deu "0 afetadas" quando havia 3.
     require(path.join(ROOT, 'backend/node_modules/dotenv')).config({ path: path.join(ROOT, 'backend/.env') });
-    const cli = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-    await cli.connect();
-    const convertidos = new Set(CONVERTIDOS.map(([, c]) => c));
-    const linhas = (await cli.query('SELECT id, paciente_id, dados_clinicos FROM selecoes_protocolo')).rows;
-    await cli.end();
+    const { neon } = require(path.join(ROOT, 'backend/node_modules/@neondatabase/serverless'));
+    const sql = neon(process.env.DATABASE_URL);
+    const linhas = [
+      ...(await sql`SELECT id, tumor, valores_estaveis AS clin, 'pacientes.valores_estaveis' AS onde FROM pacientes`),
+      ...(await sql`SELECT id, tumor, dados_clinicos  AS clin, 'selecoes_protocolo.dados_clinicos' AS onde FROM selecoes_protocolo`),
+    ];
+    // Domínio por (tumor, campo) — `her2` existe em mama E em esôfago com opções diferentes,
+    // então indexar só pelo nome do campo produz falso positivo.
+    const dominio = {};
+    for (const [t, c] of TODOS_EXAME) {
+      const sp = (CP[t] || []).find(x => x.campo === c);
+      if (sp) dominio[`${t}|${c}`] = new Set((sp.opcoes || []).map(String));
+    }
+    const convertidos = new Set(CONVERTIDOS.map(([, c]) => c));   // leva 1: trocou de TIPO
     const legado = [];
-    for (const r of linhas) for (const [k, v] of Object.entries(r.dados_clinicos || {}))
-      if (convertidos.has(k) && typeof v === 'boolean') legado.push(`seleção ${r.id} (paciente ${r.paciente_id}): ${k}=${v}`);
-    ok(`S6 ★ nenhuma seleção gravada carrega booleano em campo convertido (${linhas.length} seleções varridas) — valor do vocabulário antigo viraria 🔴 silencioso`, legado.length === 0, legado.slice(0, 4).join(' | '));
-
+    for (const r of linhas) for (const [k, v] of Object.entries(r.clin || {})) {
+      if (v === null || v === undefined || v === '') continue;
+      if (convertidos.has(k) && typeof v === 'boolean') { legado.push(`${r.onde} #${r.id} (${r.tumor}): ${k}=${v} — booleano do vocabulário antigo`); continue; }
+      const dom = dominio[`${r.tumor}|${k}`];
+      if (dom && !dom.has(String(v))) legado.push(`${r.onde} #${r.id} (${r.tumor}): ${k}=${JSON.stringify(v)} — fora do domínio`);
+    }
+    ok(`S6 ★ nenhum clínico gravado no vocabulário antigo (${linhas.length} linhas em pacientes.valores_estaveis + selecoes_protocolo.dados_clinicos) — viraria 🔴 silencioso`, legado.length === 0, legado.slice(0, 5).join(' | '));
     ok('Z somente leitura: nenhum POST/PUT/PATCH/DELETE saiu do browser', escritas.length === 0, escritas[0] || '');
     ok('Z console limpo', errs.length === 0, errs[0] || '');
     await ctx.close();

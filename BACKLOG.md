@@ -60,3 +60,35 @@ Fechado no merge das duas features (2026-09-02). A trilha traz os três tipos: `
 decidida** (quase nunca o dia da seleção), com selo ⏳/✅/⛔ e o parecer; a solicitação em si
 viaja no item da avaliação, que é onde ela nasceu. Ordenação inalterada: dia → instante do
 registro → id → tipo.
+
+---
+
+## 4. Quatro campos de exame declarados sem regra que os leia (Rodada B / Fase 2a)
+
+**Estado:** campos no vocabulário, formulário mostrando, **nenhuma regra referenciando**.
+
+A pergunta aqui **não é "pode apagar?"** — é **"falta regra?"**. Os quatro foram declarados
+por alguém que tinha um critério clínico em mente; o que não existe é a expressão de
+elegibilidade que os usa. Apagar por silêncio apagaria a intenção junto, e é por isso que
+eles não entraram nas 6 remoções limpas da Fase 2a (essas eram redundâncias comprovadas,
+não intenções pendentes).
+
+Quem decide: **oncologista de referência**, junto com a Fase 2b.
+
+| Campo | Tumor | Pergunta ao revisor |
+|---|---|---|
+| `clcr` — Clearance de creatinina | mama | Entra em alguma elegibilidade (ex.: piso de função renal para platina/capecitabina), ou é só insumo de dose e deve sair do formulário de elegibilidade? |
+| `metastase_visceral` | próstata | É o critério de **alto volume** (CHAARTED) que separa quem recebe docetaxel na mCSPC? Se sim, qual a definição que vale aqui — e em quais regimes ela entra? |
+| `assintomatico_ou_pouco_sintomatico` | próstata | É o critério de abiraterona **pré-quimioterapia** (COU-AA-302)? Em qual(is) regime(s) ele deveria aparecer como inclusão? |
+| `contraindicacao_bleomicina` | testículo | Deveria **excluir** BEP/PEB (ex.: disfunção pulmonar) e abrir o caminho de VIP/EP? Em quais regimes, e como exclusão ou como inclusão do alternativo? |
+
+**Gancho:** os quatro estão em `campos_primitivos` do RUN_ATIVO e aparecem no formulário.
+Fechar = escrever a `elegibilidade.regra` (ou `criterios[].expr`) que os lê, no próximo
+lote de intake, e o check `[4] campos órfãos` do Portão A passa a cobri-los de verdade.
+Se a resposta for "não falta regra, o campo não serve", aí sim vira remoção — e aí o
+check **S7** do `portao-semaforo` ganha mais quatro nomes.
+
+**Relacionado:** `histologia_salivar` (cabeça e pescoço) é o mesmo caso, com um agravante:
+foi criado no lote 4 **com `rotulos` e `indeterminado` completos** — o campo mais bem curado
+do corpus — e os 3 regimes de glândula salivar não o referenciam. Não entrou na remoção
+porque `scripts/portao-lote4.js` o afirma (checks L1 e L3): removê-lo quebra aquele portão.

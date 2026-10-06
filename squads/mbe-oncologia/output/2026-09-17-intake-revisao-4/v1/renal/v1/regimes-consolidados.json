@@ -38,12 +38,6 @@
       "secao": "Critérios de elegibilidade"
     },
     {
-      "campo": "alto_risco_recidiva",
-      "tipo": "boolean",
-      "label": "Alto risco recidiva",
-      "secao": "Critérios de elegibilidade"
-    },
-    {
       "campo": "doenca_autoimune_ativa",
       "tipo": "boolean",
       "label": "Doenca autoimune ativa",

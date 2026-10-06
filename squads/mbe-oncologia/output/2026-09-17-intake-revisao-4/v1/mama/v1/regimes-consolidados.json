@@ -49,32 +49,60 @@
       "campo": "her2",
       "tipo": "enum",
       "opcoes": [
+        "nao_testado",
         "positivo",
         "negativo",
         "baixa_expressao"
       ],
       "label": "HER2 (baixa_expressao = IHC 1+ ou 2+/ISH-)",
-      "secao": "Biologia"
+      "secao": "Biologia",
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "positivo": "Positivo",
+        "negativo": "Negativo",
+        "baixa_expressao": "Baixa expressão"
+      }
     },
     {
       "campo": "rh",
       "tipo": "enum",
       "opcoes": [
+        "nao_testado",
         "positivo",
         "negativo"
       ],
       "label": "Receptor hormonal",
-      "secao": "Biologia"
+      "secao": "Biologia",
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "positivo": "Positivo",
+        "negativo": "Negativo"
+      }
     },
     {
       "campo": "brca",
       "tipo": "enum",
       "opcoes": [
+        "nao_testado",
         "selvagem",
         "mutado_germinativo"
       ],
       "label": "BRCA1/2 germinativo",
-      "secao": "Biologia"
+      "secao": "Biologia",
+      "indeterminado": [
+        "nao_testado"
+      ],
+      "rotulos": {
+        "nao_testado": "Não testado",
+        "selvagem": "Selvagem (wild-type)",
+        "mutado_germinativo": "Mutado (germinativo)"
+      }
     },
     {
       "campo": "grau",
@@ -133,16 +161,6 @@
       "campo": "linfonodos_pos",
       "tipo": "integer",
       "label": "Nº de linfonodos positivos",
-      "secao": "Estadiamento"
-    },
-    {
-      "campo": "m",
-      "tipo": "enum",
-      "opcoes": [
-        "M0",
-        "M1"
-      ],
-      "label": "Metástase à distância",
       "secao": "Estadiamento"
     },
     {

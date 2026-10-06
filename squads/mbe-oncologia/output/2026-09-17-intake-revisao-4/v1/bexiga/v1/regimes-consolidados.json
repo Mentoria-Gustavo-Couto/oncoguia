@@ -131,18 +131,6 @@
       "secao": "Critérios de elegibilidade"
     },
     {
-      "campo": "inelegivel_platina",
-      "tipo": "boolean",
-      "label": "Inelegivel platina",
-      "secao": "Critérios de elegibilidade"
-    },
-    {
-      "campo": "pdl1_positivo",
-      "tipo": "boolean",
-      "label": "Pdl1 positivo",
-      "secao": "Critérios de elegibilidade"
-    },
-    {
       "campo": "progressao_pos_platina",
       "tipo": "boolean",
       "label": "Progressao pos platina",

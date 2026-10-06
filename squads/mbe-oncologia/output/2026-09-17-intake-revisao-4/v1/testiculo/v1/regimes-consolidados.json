@@ -42,12 +42,6 @@
       "secao": "Contexto"
     },
     {
-      "campo": "pos_orquiectomia",
-      "tipo": "boolean",
-      "label": "Após orquiectomia",
-      "secao": "Contexto"
-    },
-    {
       "campo": "histologia",
       "tipo": "enum",
       "opcoes": [

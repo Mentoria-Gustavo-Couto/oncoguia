@@ -39,12 +39,6 @@
       "secao": "Critérios de elegibilidade"
     },
     {
-      "campo": "alto_risco_pos_cirurgia",
-      "tipo": "boolean",
-      "label": "Alto risco pos cirurgia",
-      "secao": "Critérios de elegibilidade"
-    },
-    {
       "campo": "metastatico",
       "tipo": "boolean",
       "label": "Metastatico",

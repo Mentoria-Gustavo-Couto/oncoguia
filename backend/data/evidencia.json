@@ -71164,13 +71164,6 @@
         "estavel": false
       },
       {
-        "campo": "alto_risco_pos_cirurgia",
-        "tipo": "boolean",
-        "label": "Alto risco pos cirurgia",
-        "secao": "Critérios de elegibilidade",
-        "estavel": false
-      },
-      {
         "campo": "metastatico",
         "tipo": "boolean",
         "label": "Metastatico",
@@ -71314,9 +71307,18 @@
         "label": "Her2",
         "secao": "Critérios de elegibilidade",
         "opcoes": [
+          "nao_testado",
           "negativo",
           "positivo"
         ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "negativo": "Negativo",
+          "positivo": "Positivo"
+        },
         "estavel": true
       },
       {
@@ -71818,20 +71820,6 @@
         "estavel": false
       },
       {
-        "campo": "inelegivel_platina",
-        "tipo": "boolean",
-        "label": "Inelegivel platina",
-        "secao": "Critérios de elegibilidade",
-        "estavel": false
-      },
-      {
-        "campo": "pdl1_positivo",
-        "tipo": "boolean",
-        "label": "Pdl1 positivo",
-        "secao": "Critérios de elegibilidade",
-        "estavel": true
-      },
-      {
         "campo": "progressao_pos_platina",
         "tipo": "boolean",
         "label": "Progressao pos platina",
@@ -72029,9 +72017,18 @@
         "label": "Braf",
         "secao": "Critérios de elegibilidade",
         "opcoes": [
+          "nao_testado",
           "selvagem",
           "mutado"
         ],
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "selvagem": "Selvagem (wild-type)",
+          "mutado": "Mutado"
+        },
         "estavel": false
       },
       {
@@ -72082,13 +72079,6 @@
         "campo": "ressecado_completo",
         "tipo": "boolean",
         "label": "Ressecado completo",
-        "secao": "Critérios de elegibilidade",
-        "estavel": false
-      },
-      {
-        "campo": "alto_risco_recidiva",
-        "tipo": "boolean",
-        "label": "Alto risco recidiva",
         "secao": "Critérios de elegibilidade",
         "estavel": false
       },
@@ -72398,13 +72388,6 @@
           "refrataria"
         ],
         "label": "Linha de tratamento",
-        "secao": "Contexto",
-        "estavel": false
-      },
-      {
-        "campo": "pos_orquiectomia",
-        "tipo": "boolean",
-        "label": "Após orquiectomia",
         "secao": "Contexto",
         "estavel": false
       },
@@ -72850,34 +72833,62 @@
         "campo": "her2",
         "tipo": "enum",
         "opcoes": [
+          "nao_testado",
           "positivo",
           "negativo",
           "baixa_expressao"
         ],
         "label": "HER2 (baixa_expressao = IHC 1+ ou 2+/ISH-)",
         "secao": "Biologia",
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "positivo": "Positivo",
+          "negativo": "Negativo",
+          "baixa_expressao": "Baixa expressão"
+        },
         "estavel": true
       },
       {
         "campo": "rh",
         "tipo": "enum",
         "opcoes": [
+          "nao_testado",
           "positivo",
           "negativo"
         ],
         "label": "Receptor hormonal",
         "secao": "Biologia",
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "positivo": "Positivo",
+          "negativo": "Negativo"
+        },
         "estavel": true
       },
       {
         "campo": "brca",
         "tipo": "enum",
         "opcoes": [
+          "nao_testado",
           "selvagem",
           "mutado_germinativo"
         ],
         "label": "BRCA1/2 germinativo",
         "secao": "Biologia",
+        "indeterminado": [
+          "nao_testado"
+        ],
+        "rotulos": {
+          "nao_testado": "Não testado",
+          "selvagem": "Selvagem (wild-type)",
+          "mutado_germinativo": "Mutado (germinativo)"
+        },
         "estavel": true
       },
       {
@@ -72942,17 +72953,6 @@
         "campo": "linfonodos_pos",
         "tipo": "integer",
         "label": "Nº de linfonodos positivos",
-        "secao": "Estadiamento",
-        "estavel": false
-      },
-      {
-        "campo": "m",
-        "tipo": "enum",
-        "opcoes": [
-          "M0",
-          "M1"
-        ],
-        "label": "Metástase à distância",
         "secao": "Estadiamento",
         "estavel": false
       },

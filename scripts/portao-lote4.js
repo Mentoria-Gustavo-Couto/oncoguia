@@ -72,15 +72,21 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     // L2 A18
     await setTumor(T_COLO);
-    await clearClin(); await setClin({ tumor: 'colo_utero', estadio_iii_iv_locavancado: true, pdl1_cps1: false });
+    // Vocabulário do pdl1_cps1 mudou na Rodada B / Fase 2a: era booleano, virou enum
+    // (nao_testado / negativo / positivo). Quem muda o domínio muda os chamadores.
+    await clearClin(); await setClin({ tumor: 'colo_utero', estadio_iii_iv_locavancado: true, pdl1_cps1: 'negativo' });
     ok('L2 ★ A18: FIGO III–IVA com CPS<1 = 🔴', /^vermelho/.test(await sem(ID_A18)), await sem(ID_A18));
-    await setClin({ pdl1_cps1: true });
+    await setClin({ pdl1_cps1: 'positivo' });
     ok('L2 ★ A18: FIGO III–IVA com CPS≥1 = 🟢', /^verde/.test(await sem(ID_A18)), await sem(ID_A18));
     await setClin({ estadio_iii_iv_locavancado: false });
     ok('L2 ★ A18: IB2–IIB (não III–IVA) com CPS≥1 = 🔴', /^vermelho/.test(await sem(ID_A18)), await sem(ID_A18));
     await clearClin(); await setClin({ tumor: 'colo_utero', estadio_iii_iv_locavancado: true });
-    // No simulador, booleano não marcado vale false (comportamento existente; 🟡 só existe para enum com `indeterminado`).
-    ok('L2 A18: CPS não marcado no simulador = 🔴 (booleano default false — comportamento existente do simulador)', /^vermelho/.test(await sem(ID_A18)), await sem(ID_A18));
+    // ESTE CHECK FOI INVERTIDO na Fase 2a, e a inversão é o ponto da rodada.
+    // Antes ele afirmava "CPS não marcado = 🔴 (booleano default false)" — isto é, o portão
+    // registrava o DEFEITO como comportamento esperado: um exame que ninguém pediu era lido
+    // como CPS negativo e reprovava o KEYNOTE-A18. Agora `pdl1_cps1` é enum com
+    // `nao_testado` em primeira opção, então o não preenchido é indeterminado → 🟡.
+    ok('L2 ★ A18: CPS não pedido = 🟡 (era 🔴 por presunção de negativo — corrigido na Fase 2a)', /^amarelo/.test(await sem(ID_A18)), await sem(ID_A18));
     const a18txt = await cardTxt(ID_A18);
     ok('L2 A18: card mostra os critérios com os rótulos novos (III–IVA, CPS ≥1)', /III–IVA/.test(a18txt) && /CPS/.test(a18txt));
 
