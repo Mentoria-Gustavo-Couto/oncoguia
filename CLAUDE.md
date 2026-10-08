@@ -113,7 +113,9 @@ Esta máquina roda vários projetos simultâneos. O OncoGuia usa: backend **3005
 
 ## Portões e checks (obrigatório)
 
-Duas regras de classe, cada uma paga com um defeito que passou.
+Três regras de classe, cada uma paga com um defeito que passou. As duas primeiras nasceram da
+Rodada B (semáforo); a terceira, da rodada do método — e é a mais difícil de aplicar, porque o
+número que ela manda recusar vem com DOI.
 
 ### (a) Check que passa tem de dizer ONDE olhou
 
@@ -148,3 +150,30 @@ Sinal de alarme, e é literal: justificativa de check que diga **"comportamento 
 `portao-semaforo` varre os rótulos de todos os portões atrás dessas expressões e falha —
 a classe inteira, não o caso. Se um check precisa mesmo registrar comportamento conhecido e
 não-ideal, isso é dívida: vai para o `BACKLOG.md`, não para o rótulo de um portão.
+
+### (c) Fonte que mede um fenômeno não é fonte para a regra que responde a ele
+
+**Um estudo que quantifica um viés não autoriza o limiar que reage a esse viés.** Medir é uma
+coisa; decidir o que fazer com a medida é outra, e tem outra alçada. Entre as duas há sempre
+uma escolha normativa que o estudo não fez — e preenchê-la com o número do estudo dá à escolha
+a aparência de derivação.
+
+Por que: a Rodada do método de 2026-10-07 recebeu o texto completo do Bassler 2010 (JAMA
+2010;303:1180–1187), que mede o viés de ensaio interrompido cedo com três faixas por contagem
+de eventos — razão de RR 0,37 abaixo de 200 eventos, 0,65 entre 200 e 500, 0,88 acima de 500,
+todas significativas — e com uma extrapolação de modelo (o viés só zera com +1.714 eventos).
+Era irresistível virar `< 200 eventos → −2 níveis`. Não virou. Bassler mede **viés de
+estimativa**; quantos níveis o GRADE rebaixa é matéria de *guidance*, e nenhuma guidance fixa
+esse limiar. Fixá-lo a partir dali seria o mecanismo EXATO da convenção aposentada ("efeito
+grande" = RRR ≥ 30% com IC sup ≤ 0,85): número plausível, de fonte real, com uma função que a
+fonte não lhe dá.
+
+Este é o caso mais difícil de recusar justamente porque **os números eram reais e a fonte era
+canônica**. Os outros dois modos de falha se anunciam — número sem procedência, check que
+descreve o sistema. Este não: ele chega com DOI, IC e valor de P.
+
+Sinal de alarme: a frase "a fonte X mostra que Y, **logo** o limiar é Z". Se X é estudo
+empírico (ou qualquer fonte descritiva) e Z é limiar de decisão, o "logo" é a invenção. A
+fonte que fixa Z tem de ser a que **recomenda**, não a que **observa** — e se ela não existe,
+a regra é órfã e não se aplica. Vale para o eixo `grade` e para qualquer limiar do projeto:
+preço, elegibilidade, semáforo.

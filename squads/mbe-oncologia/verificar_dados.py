@@ -444,7 +444,11 @@ def ic_exclui_nulo(efeito):
 
 # ---- imprecisão: o que SOBROU depois da triagem de fontes de 2026-10-06 ----------------
 # R4.d (colchão de 0,95/1,05), R4.e (eventos < 300 sem "efeito grande") e R4.f (−2 automático)
-# estão SUSPENSAS. O registro e o motivo estão em "Fonte de cada regra de calibração", em
+# estão SUSPENSAS. Em 2026-10-07, com o texto completo da Guidance 34 na mão, o slot do −2 ganhou
+# um critério COM fonte — a R4.g, mais abaixo. R4.f continua morta: o −2 novo é outro critério,
+# não a mesma regra reposta. R1.d, R4.d e R4.e seguem suspensas, e não por falta de documento:
+# o critério da fonte pede taxa de evento no controle, IC do efeito absoluto e limiar de
+# importância, e o schema 2 não grava nenhum dos três. O registro e o motivo estão em "Fonte de cada regra de calibração", em
 # agents/verificador-evidencia/tasks/rederivar-grade.md. Em resumo: o 0,95 não existe em fonte
 # nenhuma; os 300 eventos são, na Table 1 de GRADE guidelines 6, o ponto em que o OIS É ATENDIDO
 # com RRR de 30% — e não um piso de punição; e "efeito grande" é mecanismo de ELEVAÇÃO de
@@ -453,6 +457,35 @@ def ic_exclui_nulo(efeito):
 # O portão não substitui a regra caída por juízo próprio: ele para de decidir e grava a
 # EXPOSIÇÃO num WARN, para o referendo ver onde o valor dependia da convenção.
 EVENTOS_OIS_REFERENCIA = 300    # SÓ para o WARN de exposição. NÃO é limiar aplicado.
+
+# ---- R4.g: a parte da GRADE Guidance 34 (2022) que é exprimível com o schema 2 de hoje -------
+# Guidance 34, caixa "What is new?", 3ª alínea, e Box 5 circunstância 1:
+#   "Using the OIS approach, for dichotomous outcomes, one should consider rating down two levels
+#    for imprecision, when the ratio of the upper to the lower boundary of the CI is more than 2.5
+#    for odds ratio or three for risk ratio"
+# Por que este critério dispensa o cálculo do OIS — que é o que mantém R1.d e R4.e suspensas —
+# está em §4.2 da própria fonte: razão acima do limiar significa amostra "very far from meeting the
+# OIS" para QUALQUER combinação razoável de risco de base e efeito. Logo não precisa da taxa de
+# evento no controle, que o schema 2 não grava.
+# ESCOPO DE MEDIDA é literal: a fonte nomeia odds ratio e risk ratio, para desfecho DICOTÔMICO.
+# HR não é nomeado e NÃO entra — HR é razão em tempo-até-evento, e o limiar vem de simulação para
+# dicotômico. Estender a HR é decisão do revisor metodológico; estender aqui seria a mesma espécie
+# de salto que criou a convenção aposentada. Medida de diferença também fica fora: para desfecho
+# contínuo a fonte usa outro critério (amostra < 30–50% do OIS), que pede `desenho.n`.
+RAZAO_IC_LIMIAR = {"OR": 2.5, "RR": 3.0}
+
+
+def razao_ic_acima_do_limiar(efeito):
+    """R4.g — razão entre o limite superior e o inferior do IC de 95%, contra o limiar da Box 5.
+    Devolve (razao, limiar) quando a medida está no escopo e a razão cruza; senão (None, None)."""
+    lim = RAZAO_IC_LIMIAR.get(efeito.get("medida"))
+    if lim is None:
+        return None, None
+    ic = _ic(efeito)
+    if not ic or ic[0] <= 0:
+        return None, None
+    razao = ic[1] / ic[0]
+    return (razao, lim) if razao > lim else (None, None)
 
 
 def imprecisao_obrigatoria(efeito):
@@ -647,6 +680,18 @@ def check_grade_schema2(r, bugs, warns_nominais):
         obrig, motivo = True, "análise interina sem versão mais madura (C4)"
     if obrig and notas.get("imprecisao", 0) > -1:
         B(f"regra 4: imprecisão tem de ser ≤ -1 ({motivo})")
+    # R4.g — razão do IC acima do limiar da Guidance 34. A fonte diz "consider rating down two
+    # levels": rebaixar ao menos UM nível não é opcional nela, então 0 é FALHA; o segundo nível é
+    # "consider", então −1 sai como WARN e não como FALHA. Endurecer a fonte é o defeito-irmão de
+    # afrouxá-la, e os dois cabem no mesmo check se a diferença não estiver escrita.
+    rz, rz_lim = razao_ic_acima_do_limiar(ef)
+    if rz is not None:
+        if notas.get("imprecisao", 0) > -1:
+            B(f"R4.g: {ef.get('medida')} com IC {_ic(ef)} — razão {rz:.2f} > {rz_lim:g}, amostra "
+              f"muito distante do OIS (Guidance 34, Box 5 circ. 1); imprecisão tem de ser ≤ -1")
+        elif notas.get("imprecisao", 0) == -1:
+            W(f"R4.g: {ef.get('medida')} com IC {_ic(ef)} — razão {rz:.2f} > {rz_lim:g}; a fonte "
+              f"manda CONSIDERAR -2 e a imprecisão ficou em -1. Decisão do revisor, não do portão")
     # Exposição das regras suspensas (R4.d, R4.e, R4.f): o portão não decide, só mostra onde o
     # valor dependia da convenção aposentada. Nada aqui gera FALHA.
     ev_ref = ef.get("eventos")
@@ -837,7 +882,7 @@ REGRAS_APLICADAS = [
     "R1.a", "R1.b", "R1.c", "R1.e",            # certeza A: desenho, desfecho, IC, domínios em 0
     "R2", "C8",                                # substituto sem SG; desfecho curativo (institucional)
     "R3.a", "R3.b", "R3.d", "R3.e",            # certeza inicial; precedência e escopo das elevações
-    "R4.a", "R4.b", "R4.c", "C4",              # imprecisão: nulo, nível do IC, diferença, interina
+    "R4.a", "R4.b", "R4.c", "R4.g", "C4",      # imprecisão: nulo, nível do IC, diferença, razão do IC, interina
     "R5.b", "R5.c",                            # MCBS e incorporação (institucionais)
     "R6.a", "R6.b", "R6.c",                    # pivô: intervenção, comparador, primário
     "C9.a",                                    # deferência à certeza declarada da revisão

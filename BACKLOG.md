@@ -92,3 +92,60 @@ check **S7** do `portao-semaforo` ganha mais quatro nomes.
 foi criado no lote 4 **com `rotulos` e `indeterminado` completos** — o campo mais bem curado
 do corpus — e os 3 regimes de glândula salivar não o referenciam. Não entrou na remoção
 porque `scripts/portao-lote4.js` o afirma (checks L1 e L3): removê-lo quebra aquele portão.
+
+---
+
+## 5. O −2 de imprecisão não alcança HR — 38 de 50 blocos descobertos (rodada do método)
+
+**Decidido em 2026-10-07 pelo revisor metodológico:** a `R4.g` **não** se estende a HR.
+
+A regra que a Guidance 34 destravou (razão entre os limites do IC de 95% acima de 2,5 para
+OR ou 3 para RR ⇒ considerar −2) foi derivada de simulação para **desfecho dicotômico**, em
+meta-análise em rede (guidelines 33, referência [12] da Guidance 34). Razão de risco
+**instantâneo** não está nessa derivação. Aplicá-la a HR seria tirar o número de onde foi
+deduzido e usá-lo onde não foi — o mesmo movimento que aposentou a convenção de "efeito
+grande". Ver a regra (c) do `CLAUDE.md`.
+
+**O tamanho da lacuna, medido:** dos 50 blocos schema 2 das quatro ondas, **38 usam HR**, 2
+usam diferença absoluta, 9 não têm bloco de efeito e **1** usa RR. A `R4.g` alcança esse 1 —
+que não cruza o limiar (razão 1,23). Hoje a regra não protege nenhum bloco real do corpus.
+
+**Procurado e não encontrado** (2026-10-07, escopo declarado): `hazard` aparece **zero** vezes
+em GRADE guidelines 6, **zero** na Guidance 34 e **zero** na Guidance 35; a Guidance 35
+organiza o domínio em dois baldes e nenhum é tempo-até-evento (§4.2 dicotômico, §4.3
+contínuo). A série numerada posterior, varrida no Crossref (J Clin Epidemiol desde 08/2022):
+36 inconsistência · **37 imprecisão em acurácia de teste** · 38 dose-resposta · 39
+ADOLOPMENT · 40 EtD ambiental · 44 randomizados e não-randomizados — nenhuma trata HR. Busca
+ampla no Europe PMC devolve milhares de *aplicações* do GRADE a desfecho de tempo até evento
+e nenhuma *guidance* sobre como graduar imprecisão nele. Não é prova de inexistência; é o
+alcance da busca, declarado.
+
+**Quem fecha:** ninguém do squad pode fechar escrevendo um limiar — seria órfão, e a regra
+estrutural o barra. Fecha de dois modos: (a) aparecer guidance GRADE de tempo-até-evento, e
+aí a regra se escreve com frase literal; (b) o revisor metodológico decidir converter HR em
+medida que a fonte cobre, com fonte para a conversão. Até então, **o −2 de imprecisão é
+inaplicável a 38 dos 50 blocos, e isso está nomeado em vez de disfarçado.**
+
+## 6. `piloto-renal` falha o check [8] do Portão A — falha PRÉ-EXISTENTE, com dono
+
+**Sintoma:** `python3 squads/mbe-oncologia/verificar_dados.py
+squads/mbe-oncologia/output/2026-09-17-rederivacao-grade/piloto-renal` devolve
+`✗ FALHA: por-tumor DIVERGE do agregado publicado (fonte dupla inconsistente) (10)` — os 10
+regimes da onda. As outras três ondas (1, 2, 3) passam.
+
+**Não é regressão, e isto foi verificado, não suposto:** a mesma falha aparece rodando a
+versão de `verificar_dados.py` de `HEAD` (`git show HEAD:… > tmp.py`) contra o mesmo
+diretório. Conferido em 2026-10-07, ao acrescentar a `R4.g`. Registrado aqui para não virar
+folclore do tipo "o piloto-renal sempre falha, ignore" — que é como um defeito real se
+esconde atrás de uma falha conhecida.
+
+**Causa provável, NÃO confirmada:** o piloto renal foi a primeira onda de re-derivação e
+nunca foi promovido ao agregado publicado; o check [8] compara por-tumor contra o agregado do
+RUN_ATIVO, e o renal publicado é legado schema 1. Se for isso, a falha é o check medindo uma
+comparação que não faz sentido para esta onda — e a correção é o check declarar escopo (regra
+(a) do `CLAUDE.md`: dizer ONDE olhou e contra o quê), não silenciar a onda.
+
+**Quem decide:** quem mantém o Portão A. Duas saídas legítimas: (a) o [8] reconhecer onda de
+re-derivação não publicada e reportar SKIP com o motivo impresso; (b) promover o piloto ao
+agregado, se for essa a intenção. **Não** é saída aceitável adicionar o piloto a uma lista de
+exceções sem dizer por quê — isso é a fotografia que a regra (b) proíbe.
