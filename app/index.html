@@ -1426,12 +1426,16 @@ function noDominio(s,v){
 // `nao_testado` → 🟡. Devolve CÓPIA: o snapshot fica intacto e a trilha segue mostrando o
 // que foi visto. Valor DENTRO do domínio passa como está — inclusive o default antigo da
 // leva 2 (mama her2=positivo): é o mesmo byte do digitado, e a semente não adivinha.
+// O descarte é AMARRADO à declaração de indeterminado (o mesmo mecanismo dos drivers de
+// pulmão): só descarta se o vocabulário declara o token vazio e o default cai nele. Sem
+// isso, descartar mandaria o campo a um default que é valor clínico (bexiga/risco →
+// "intermediario") — o valor gravado fica, e o que fazer com ele não é decisão da semente.
 function sanearClinico(t,clin){
   const out = {...(clin||{})};
   (primFieldsFor(t)||[]).forEach(s=>{
     const v = out[s.campo];
     if(v===undefined||v===null||v==="") return;
-    if(!noDominio(s,v)) delete out[s.campo];
+    if(!noDominio(s,v) && _indet(s, primDefault(s))) delete out[s.campo];
   });
   return out;
 }

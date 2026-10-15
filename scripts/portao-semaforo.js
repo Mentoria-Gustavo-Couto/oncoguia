@@ -34,8 +34,10 @@
 //      registro de auditoria, a migration não o toca) e é ele que semeia a tela. Booleano
 //      fora do domínio atual tem de sair das DUAS sementes (seedClinDoSeguimento e
 //      iniciarReaval) como não informado → 🟡, nunca 🔴; o snapshot fica intacto; e o
-//      default antigo da leva 2, que está DENTRO do domínio, não é adivinhado. Sintético por
-//      classe + o registro legado real do banco de dev, pelo caminho inteiro da tela.
+//      default antigo da leva 2, que está DENTRO do domínio, não é adivinhado. O descarte é
+//      amarrado à declaração de `indeterminado`: campo sem ela guarda o valor (descartar o
+//      mandaria a um default clínico). Sintético por classe + o registro legado real do
+//      banco de dev, pelo caminho inteiro da tela.
 //
 // Somente leitura: nenhum POST sai do browser; nada é criado no banco.
 // Uso: node scripts/portao-semaforo.js   (app 5173 e API 3005 no ar).
@@ -378,6 +380,35 @@ function camposDaRegra(node, crit, out, seen, nums) {
     const inferidos = Object.entries(LEVA2_DEFAULT).filter(([k, v]) => l2.segClin[k] !== v || l2.reaClin[k] !== v)
       .map(([k, v]) => `${k}: gravado ${v}, semente seguimento=${l2.segClin[k]} reavaliação=${l2.reaClin[k]}`);
     ok('S9 ★ não infere: enum da leva 2 parado no default antigo (mama her2=positivo, rh=positivo, brca=selvagem) passa intacto pelas duas sementes', inferidos.length === 0, inferidos.join(' | '));
+
+    // O descarte é AMARRADO à declaração de indeterminado: só some o valor de campo cujo
+    // vocabulário declara o token vazio E cujo default cai nele. Num campo sem essa
+    // declaração, descartar mandaria o campo ao default — e o default dele é valor clínico
+    // (bexiga/risco → "intermediario"): o 🔴 silencioso viraria um 🟢 ou 🔴 inventado. Ali o
+    // valor gravado fica como está; o que fazer com ele não é decisão da semente.
+    const semIndet = [];
+    for (const t of Object.keys(CP).sort()) for (const s of CP[t]) {
+      if ((s.indeterminado || []).length) continue;
+      if (s.tipo === 'enum' && (s.opcoes || []).length && !semIndet.some((x) => x.tipo === 'enum'))
+        semIndet.push({ t, campo: s.campo, tipo: 'enum', v: 'valor_aposentado', def: s.opcoes[0] });
+      if (s.tipo === 'boolean' && !semIndet.some((x) => x.tipo === 'boolean'))
+        semIndet.push({ t, campo: s.campo, tipo: 'boolean', v: 'positivo', def: false });
+    }
+    const descartados = [];
+    for (const x of semIndet) {
+      const r = await semear(x.t, null, { [x.campo]: x.v });
+      if (r.segClin[x.campo] !== x.v || r.reaClin[x.campo] !== x.v)
+        descartados.push(`${x.t}/${x.campo}=${JSON.stringify(x.v)}: seguimento=${JSON.stringify(r.segClin[x.campo])} reavaliação=${JSON.stringify(r.reaClin[x.campo])} (o default seria ${JSON.stringify(x.def)})`);
+    }
+    ok(`S9 ★ descarte amarrado ao indeterminado: campo SEM token indeterminado declarado guarda o valor fora do domínio nas duas sementes — ${semIndet.map((x) => `${x.t}/${x.campo} (${x.tipo}, default ${JSON.stringify(x.def)})`).join(', ')}`,
+      semIndet.length === 2 && descartados.length === 0, descartados.join(' | '));
+
+    // E o descarte segue a DECLARAÇÃO, não a lista dos 15 convertidos: um driver de pulmão
+    // (indeterminado declarado na decisão de 16/09) com valor fora do domínio também sai.
+    const [tDrv, cDrv] = JA_CORRETOS[0];
+    const drv = await semear(tDrv, null, { [cDrv]: true });
+    ok(`S9 ★ o descarte segue a declaração, não a lista: ${tDrv}/${cDrv}=true (fora dos 15, indeterminado declarado) sai das duas sementes como não informado`,
+      drv.segClin[cDrv] === undefined && drv.reaClin[cDrv] === undefined, `seguimento=${JSON.stringify(drv.segClin[cDrv])} reavaliação=${JSON.stringify(drv.reaClin[cDrv])}`);
 
     // Real: o registro legado que existe no banco de DEV, pelo caminho inteiro da tela —
     // GET /pacientes/:id → seedClinDoSeguimento → semáforo, e Reavaliar → iniciarReaval.
