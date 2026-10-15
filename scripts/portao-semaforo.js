@@ -30,6 +30,12 @@
 //   S5 paridade — os mesmos casos nos DOIS interpretadores (app/index.html e o
 //      backend/dist/evidencia/semaforo.js compilado). O portão vale para a tela e para o
 //      servidor; se divergirem, o defeito é maior que o corrigido.
+//   S9 ★ semente saneada — avaliacoes.snapshot_campos guarda o vocabulário antigo (é
+//      registro de auditoria, a migration não o toca) e é ele que semeia a tela. Booleano
+//      fora do domínio atual tem de sair das DUAS sementes (seedClinDoSeguimento e
+//      iniciarReaval) como não informado → 🟡, nunca 🔴; o snapshot fica intacto; e o
+//      default antigo da leva 2, que está DENTRO do domínio, não é adivinhado. Sintético por
+//      classe + o registro legado real do banco de dev, pelo caminho inteiro da tela.
 //
 // Somente leitura: nenhum POST sai do browser; nada é criado no banco.
 // Uso: node scripts/portao-semaforo.js   (app 5173 e API 3005 no ar).
@@ -179,7 +185,8 @@ function camposDaRegra(node, crit, out, seen, nums) {
     await page.goto(APP);
     await loginNaTela(page, 'oncologista');
     await page.waitForSelector('#nav a', { timeout: 25000 });
-    page.on('request', r => { const m = r.method(); if (!['GET','HEAD','OPTIONS'].includes(m)) escritas.push(m + ' ' + r.url()); });
+    const leituras = [];
+    page.on('request', r => { const m = r.method(); if (!['GET','HEAD','OPTIONS'].includes(m)) escritas.push(m + ' ' + r.url()); else if (r.url().startsWith(API)) leituras.push(r.url().slice(API.length)); });
 
     // veredito da APP para um conjunto de valores (com os defaults da tela aplicados)
     const vereditoApp = (rid, t, over) => page.evaluate(([rid, t, over]) => {
@@ -201,6 +208,7 @@ function camposDaRegra(node, crit, out, seen, nums) {
 
     // ---------- S3 afirmativo ----------
     const falhasAmarelo = [], falhasVacuo = [], falhasParidade = [];
+    const pares = [];   // (tumor, campo, regime, atribuição discriminante) — o S9 planta sobre eles
     let casos = 0;
     for (const [t, campo] of TODOS_EXAME) {
       const spec = (CP[t] || []).find(x => x.campo === campo);
@@ -235,6 +243,7 @@ function camposDaRegra(node, crit, out, seen, nums) {
         // agora: MESMA atribuição, exame EM BRANCO (default da tela)
         const semExame = await vereditoApp(reg.regimen_id, t, achou.over);
         casos++;
+        pares.push({ t, campo, rid: reg.regimen_id, over: achou.over });   // reusado no S9
         if (semExame.v !== 'amarelo') falhasAmarelo.push(`${t}/${campo}/${reg.regimen_id}: exame em branco deu ${semExame.v.toUpperCase()} (devia ser amarelo)`);
         const srv = vereditoSrv(reg.regimen_id, t, semExame.vals);
         if (srv !== semExame.v) falhasParidade.push(`${reg.regimen_id}: app=${semExame.v} srv=${srv}`);
@@ -281,13 +290,20 @@ function camposDaRegra(node, crit, out, seen, nums) {
       if (sp) dominio[`${t}|${c}`] = new Set((sp.opcoes || []).map(String));
     }
     const convertidos = new Set(CONVERTIDOS.map(([, c]) => c));   // leva 1: trocou de TIPO
+    // Valores de exame fora do domínio ATUAL num clínico gravado: [campo, valor, motivo].
+    const foraDoDominio = (tumor, clin) => {
+      const out = [];
+      for (const [k, v] of Object.entries(clin || {})) {
+        if (v === null || v === undefined || v === '') continue;
+        if (convertidos.has(k) && typeof v === 'boolean') { out.push([k, v, 'booleano do vocabulário antigo']); continue; }
+        const dom = dominio[`${tumor}|${k}`];
+        if (dom && !dom.has(String(v))) out.push([k, v, 'fora do domínio']);
+      }
+      return out;
+    };
     const legado = [];
-    for (const r of linhas) for (const [k, v] of Object.entries(r.clin || {})) {
-      if (v === null || v === undefined || v === '') continue;
-      if (convertidos.has(k) && typeof v === 'boolean') { legado.push(`${r.onde} #${r.id} (${r.tumor}): ${k}=${v} — booleano do vocabulário antigo`); continue; }
-      const dom = dominio[`${r.tumor}|${k}`];
-      if (dom && !dom.has(String(v))) legado.push(`${r.onde} #${r.id} (${r.tumor}): ${k}=${JSON.stringify(v)} — fora do domínio`);
-    }
+    for (const r of linhas) for (const [k, v, motivo] of foraDoDominio(r.tumor, r.clin))
+      legado.push(`${r.onde} #${r.id} (${r.tumor}): ${k}=${JSON.stringify(v)} — ${motivo}`);
     // Regra (a) do CLAUDE.md: check que passa diz ONDE olhou. O escopo vem contado POR
     // COLUNA, não num total agregado — foi exatamente um escopo errado (só
     // selecoes_protocolo) que fez este check passar verde quando havia 3 valores velhos
@@ -300,6 +316,117 @@ function camposDaRegra(node, crit, out, seen, nums) {
     ok(`S6 ★ nenhum clínico gravado no vocabulário antigo — escopo varrido: ${escopo} (${linhas.length} linhas, ${Object.keys(dominio).length} campos de exame)`,
       legado.length === 0 && naoVarridas.length === 0,
       [...legado.slice(0, 5), ...naoVarridas.map((c) => `coluna fora do escopo declarado: ${c}`)].join(' | '));
+
+    // ---------- S9 semente saneada ----------
+    // A TERCEIRA coluna de clínico, avaliacoes.snapshot_campos, fica fora do S6 e da
+    // migration de propósito: é registro de AUDITORIA (o que o médico viu naquele dia) e
+    // continua guardando `false`/`true` nos booleanos convertidos. Mas é ela que semeia a
+    // tela (seedClinDoSeguimento) e a reavaliação (iniciarReaval). Sem saneamento, `false`
+    // contra `eq "positivo"` dá 🔴 em silêncio — produção tem 4 valores assim, em 4
+    // avaliações de 2 pacientes. O que se afirma aqui: valor fora do domínio ATUAL sai da
+    // semente como não informado (→ `nao_testado` → 🟡), e o snapshot fica como estava.
+    //
+    // Sintético: o caso de produção, por CLASSE — cada par (campo × regime) do S3 sobre os
+    // booleanos convertidos, com o exame gravado como `true` e como `false`. Passa pelas
+    // duas sementes REAIS da tela, num paciente que só existe na memória da página.
+    const ehConvertido = new Set(CONVERTIDOS.map(([t, c]) => `${t}|${c}`));
+    const sinteticos = pares.filter((x) => ehConvertido.has(`${x.t}|${x.campo}`));
+    const semear = (t, rid, snap) => page.evaluate(([t, rid, snap]) => {
+      const ID = -954;   // paciente de mentira, só na memória da página — nada vai ao servidor
+      const d = { tumor: t, ultima_avaliacao: { id: -1, linha_tratamento: 1, snapshot_campos: snap } };
+      const antes = JSON.stringify(snap);
+      patients.push({ id: ID, nome: 'S9', tumor: t, clin: {} });
+      try {
+        seedClinDoSeguimento(ID, d);
+        const p = patients.find((y) => y.id === ID);
+        const reg = rid && REGIMES.find((r) => r.regimen_id === rid);
+        const seg = reg ? classificarPrim(reg, t, p.clin).status : null;
+        const segClin = { ...p.clin };
+        PAC_DETAIL[ID] = d; iniciarReaval(ID);
+        const rea = reg ? classificarPrim(reg, t, REAVAL.clin).status : null;
+        return { seg, rea, segClin, reaClin: { ...REAVAL.clin }, intacto: JSON.stringify(d.ultima_avaliacao.snapshot_campos) === antes };
+      } finally {
+        REAVAL = null; delete PAC_DETAIL[ID]; delete EXP_UNLOCK[ID];
+        const i = patients.findIndex((y) => y.id === ID); if (i >= 0) patients.splice(i, 1);
+      }
+    }, [t, rid, snap]);
+    const SEM = { ok: 'verde', bad: 'vermelho', warn: 'amarelo' };
+    const falhasSemente = [], cruVermelho = [], alterados = [];
+    let nSint = 0;
+    for (const x of sinteticos) for (const v of [true, false]) {
+      const snap = { ...x.over, [x.campo]: v };
+      const cru = await vereditoApp(x.rid, x.t, snap);   // o que a tela pintava semeando o snapshot cru
+      if (cru.v === 'vermelho') cruVermelho.push(`${x.t}/${x.campo}=${v}/${x.rid}`);
+      const r = await semear(x.t, x.rid, snap);
+      nSint++;
+      if (r.seg !== 'warn' || r.rea !== 'warn')
+        falhasSemente.push(`${x.t}/${x.campo}=${v}/${x.rid}: seguimento=${SEM[r.seg]} reavaliação=${SEM[r.rea]} (devia ser amarelo)`);
+      if (!r.intacto) alterados.push(`${x.t}/${x.campo}=${v}`);
+    }
+    ok(`S9 ★ booleano do vocabulário antigo no snapshot ⇒ 🟡 depois da semente, nunca 🔴 — ${nSint} casos (${sinteticos.length} pares campo × regime dos ${CONVERTIDOS.length} booleanos convertidos, × true/false), nas DUAS sementes: seedClinDoSeguimento e iniciarReaval`,
+      sinteticos.length > 0 && falhasSemente.length === 0, falhasSemente.slice(0, 4).join(' | '));
+    ok(`S9 não-vácuo: o MESMO snapshot semeado cru (sem saneamento) pinta 🔴 em ${cruVermelho.length} dos ${nSint} casos — o defeito plantado existe`,
+      cruVermelho.length > 0, cruVermelho.slice(0, 3).join(' | '));
+    ok('S9 registro de auditoria intacto: a semente não altera o snapshot da avaliação', alterados.length === 0, alterados.slice(0, 3).join(' | '));
+
+    // O saneamento descarta só o que está FORA do domínio. O default antigo da leva 2
+    // (mama her2=positivo, rh=positivo, brca=selvagem) está DENTRO: "positivo" posto pelo
+    // default é o mesmo byte que "positivo" digitado, e o banco não guarda a diferença. A
+    // semente não pode tentar adivinhar — é pergunta clínica, resolvida no prontuário.
+    const LEVA2_DEFAULT = { her2: 'positivo', rh: 'positivo', brca: 'selvagem' };
+    const l2 = await semear('mama', null, { ...LEVA2_DEFAULT });
+    const inferidos = Object.entries(LEVA2_DEFAULT).filter(([k, v]) => l2.segClin[k] !== v || l2.reaClin[k] !== v)
+      .map(([k, v]) => `${k}: gravado ${v}, semente seguimento=${l2.segClin[k]} reavaliação=${l2.reaClin[k]}`);
+    ok('S9 ★ não infere: enum da leva 2 parado no default antigo (mama her2=positivo, rh=positivo, brca=selvagem) passa intacto pelas duas sementes', inferidos.length === 0, inferidos.join(' | '));
+
+    // Real: o registro legado que existe no banco de DEV, pelo caminho inteiro da tela —
+    // GET /pacientes/:id → seedClinDoSeguimento → semáforo, e Reavaliar → iniciarReaval.
+    const snaps = await sql`
+      SELECT a.id, a.paciente_id, p.tumor, a.snapshot_campos AS clin,
+             a.id = (SELECT a2.id FROM avaliacoes a2 WHERE a2.paciente_id = a.paciente_id
+                      ORDER BY a2.data DESC, a2.id DESC LIMIT 1) AS ultima
+        FROM avaliacoes a JOIN pacientes p ON p.id = a.paciente_id`;
+    const legSnap = [];
+    for (const a of snaps) for (const [k, v] of foraDoDominio(a.tumor, a.clin)) legSnap.push({ aval: a.id, pid: a.paciente_id, tumor: a.tumor, campo: k, v, ultima: a.ultima });
+    const semeiam = legSnap.filter((x) => x.ultima);
+    const falhasReal = [], mudancas = [];
+    for (const x of semeiam) {
+      const r = await page.evaluate(async ([x]) => {
+        const p0 = patients.find((y) => y.id === x.pid);
+        if (!p0) return { fora: true };
+        await carregarDetalhe(x.pid);
+        const p = patients.find((y) => y.id === x.pid), d = PAC_DETAIL[x.pid];
+        if (!d) return { semDetalhe: true };   // GET /pacientes/:id falhou (429 do rate limit, p.ex.)
+        const segVal = p.clin[x.campo];
+        const intacto = !!(d && d.ultima_avaliacao && d.ultima_avaliacao.snapshot_campos[x.campo] === x.v);
+        // Regimes do tumor que leem o campo: veredito com a semente vs. com o valor cru de volta.
+        const mud = [];
+        REGIMES.filter((r) => r.tumor === x.tumor && JSON.stringify(r.elegibilidade || {}).includes(`"${x.campo}"`)).forEach((r) => {
+          const san = classificarPrim(r, x.tumor, p.clin).status;
+          const cru = classificarPrim(r, x.tumor, { ...p.clin, [x.campo]: x.v }).status;
+          if (san !== cru) mud.push([r.regimen_id, cru, san]);
+        });
+        const nReg = REGIMES.filter((r) => r.tumor === x.tumor && JSON.stringify(r.elegibilidade || {}).includes(`"${x.campo}"`)).length;
+        iniciarReaval(x.pid);
+        const reaVal = REAVAL && REAVAL.clin[x.campo];
+        REAVAL = null;
+        return { segVal, reaVal, intacto, mud, nReg };
+      }, [x]);
+      const id = `pac#${x.pid} aval#${x.aval} (${x.tumor}) ${x.campo}=${JSON.stringify(x.v)}`;
+      if (r.fora) { falhasReal.push(`${id}: paciente fora da lista do perfil de teste — o caminho da tela não foi exercitado`); continue; }
+      if (r.semDetalhe) { falhasReal.push(`${id}: GET /pacientes/${x.pid} falhou na tela — o caminho não foi exercitado`); continue; }
+      if (r.segVal !== undefined) falhasReal.push(`${id}: seguimento semeou ${JSON.stringify(r.segVal)}`);
+      if (r.reaVal !== undefined) falhasReal.push(`${id}: reavaliação semeou ${JSON.stringify(r.reaVal)}`);
+      if (!r.intacto) falhasReal.push(`${id}: o snapshot servido não traz mais o valor gravado`);
+      r.mud.filter(([, , san]) => san !== 'warn').forEach(([rid, cru, san]) => falhasReal.push(`${id}: ${rid} ${SEM[cru]}→${SEM[san]} (devia ir a amarelo)`));
+      mudancas.push(r.mud.length
+        ? `${id}: ${r.mud.map(([rid, cru, san]) => `${rid} ${SEM[cru]}→${SEM[san]}`).join(', ')}`
+        : `${id}: campo vira não testado, nenhum veredito muda (o resto do clínico já decide os ${r.nReg} regime(s) que leem o campo)`);
+    }
+    ok(`S9 ★ registro real de dev — escopo varrido: avaliacoes.snapshot_campos=${snaps.length} linhas, ${legSnap.length} valor(es) fora do domínio, ${semeiam.length} na última avaliação (a que semeia a tela): cada um sai das duas sementes como não informado, e o que muda no semáforo vai a 🟡`,
+      semeiam.length > 0 && falhasReal.length === 0,
+      (semeiam.length ? [...falhasReal.slice(0, 4), ...(falhasReal.length ? [] : mudancas.slice(0, 6))] : ['nenhum registro legado na última avaliação em dev — o check real ficou VÁCUO (a classe segue coberta pelo sintético)']).join(' | '));
+
     // ---------- S8 portão-fotografia ----------
     // Regra (b) do CLAUDE.md: portão afirma o que DEVERIA ser verdade, nunca o que É.
     // Um check cuja justificativa diz "comportamento existente" parou de ser especificação
@@ -334,7 +461,9 @@ function camposDaRegra(node, crit, out, seen, nums) {
     ok(`S8 ★ nenhum portão justifica o esperado com o comportamento de hoje — escopo varrido: scripts/portao-*.js (${nPortoes} arquivos, ${FRASES.length} expressões)`, // s8:ignore
       fotografias.length === 0, fotografias.slice(0, 3).join(' | '));
 
-    ok('Z somente leitura: nenhum POST/PUT/PATCH/DELETE saiu do browser', escritas.length === 0, escritas[0] || '');
+    // Leituras contadas: a API limita 60 req/min por IP, e duas rodadas seguidas do portão
+    // já estouraram esse teto (429 no console). O número diz quanto do teto cada rodada gasta.
+    ok('Z somente leitura: nenhum POST/PUT/PATCH/DELETE saiu do browser', escritas.length === 0, escritas[0] || `${leituras.length} leitura(s) da API depois do login`);
     ok('Z console limpo', errs.length === 0, errs[0] || '');
     await ctx.close();
   } catch (e) {

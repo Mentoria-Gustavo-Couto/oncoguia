@@ -1411,6 +1411,30 @@ function primDefault(s){
   return undefined; // number, score
 }
 function primVal(clin,s){ const v=clin[s.campo]; return v===undefined ? primDefault(s) : v; }
+// O valor cabe no domínio ATUAL do primitivo? Vazio não é "fora" — é não informado.
+function noDominio(s,v){
+  if(s.tipo==="boolean") return typeof v==="boolean" || v==="true" || v==="false";
+  if(Array.isArray(s.opcoes) && s.opcoes.length) return s.opcoes.map(String).includes(String(v));
+  if(s.tipo==="number"||s.tipo==="score"||s.tipo==="integer")
+    return (typeof v==="number" && isFinite(v)) || (typeof v==="string" && /^-?\d+(\.\d+)?$/.test(v.trim()));
+  return true; // tipo que a tela não conhece: não é ela quem decide o domínio
+}
+// Semente saneada. snapshot_campos é registro de AUDITORIA — o que o médico viu naquele dia —
+// e guarda o vocabulário de quando foi gravado: `false` num biomarcador que hoje é enum
+// (positivo/negativo/nao_testado). Semeado cru, `false` contra `eq "positivo"` dá 🔴 em
+// silêncio. Aqui o valor fora do domínio atual vira não informado → primDefault →
+// `nao_testado` → 🟡. Devolve CÓPIA: o snapshot fica intacto e a trilha segue mostrando o
+// que foi visto. Valor DENTRO do domínio passa como está — inclusive o default antigo da
+// leva 2 (mama her2=positivo): é o mesmo byte do digitado, e a semente não adivinha.
+function sanearClinico(t,clin){
+  const out = {...(clin||{})};
+  (primFieldsFor(t)||[]).forEach(s=>{
+    const v = out[s.campo];
+    if(v===undefined||v===null||v==="") return;
+    if(!noDominio(s,v)) delete out[s.campo];
+  });
+  return out;
+}
 function clinValues(t,clin){ const v={}; (primFieldsFor(t)||[]).forEach(s=>{ v[s.campo]=primVal(clin,s); }); return v; }
 
 // Ordinal a partir das opcoes do primitivo (dá ordem a >=,<=,>,< em enum sem hardcode).
@@ -2629,7 +2653,7 @@ function seedClinDoSeguimento(id,d){
   const p = patients.find(x=>x.id===id); if(!p||!d) return;
   if(d.tumor) p.tumor = d.tumor;
   const base = (d.ultima_avaliacao && d.ultima_avaliacao.snapshot_campos) || d.valores_estaveis || {};
-  p.clin = {...base};
+  p.clin = sanearClinico(p.tumor, base);
   EXP_UNLOCK[id] = new Set();
 }
 function destravarEstavelExp(pid,k){
@@ -3964,9 +3988,8 @@ function renderExploracaoClient(p, aviso){
 // troca_protocolo — a avaliação gravada sai vinculada a ele.
 function iniciarReaval(pid, opts){
   const detail = PAC_DETAIL[pid]; if(!detail) return;
-  const base = (detail.ultima_avaliacao && detail.ultima_avaliacao.snapshot_campos)
-    ? {...detail.ultima_avaliacao.snapshot_campos}
-    : {...(detail.valores_estaveis||{})};
+  const base = sanearClinico(detail.tumor, (detail.ultima_avaliacao && detail.ultima_avaliacao.snapshot_campos)
+    || detail.valores_estaveis || {});
   const linha = (detail.ultima_avaliacao && detail.ultima_avaliacao.linha_tratamento) || 1;
   REAVAL = {pid, clin:base, linha, unlocked:new Set(),
     retorno_id:(opts&&opts.retorno_id)||null, troca:(opts&&opts.troca)||null};
