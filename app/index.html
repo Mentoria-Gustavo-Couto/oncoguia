@@ -1430,12 +1430,27 @@ function noDominio(s,v){
 // pulmão): só descarta se o vocabulário declara o token vazio e o default cai nele. Sem
 // isso, descartar mandaria o campo a um default que é valor clínico (bexiga/risco →
 // "intermediario") — o valor gravado fica, e o que fazer com ele não é decisão da semente.
+//
+// `true` e `false` NÃO são simétricos. O primDefault antigo materializava `false` em todo
+// booleano não tocado: `false` gravado é ambíguo (default ou negativo?) e é descartado. `true`
+// só sai de alguém clicando — é exame registrado (BRCA+ em ovário sustenta olaparibe) — e é
+// TRADUZIDO, na leitura, pelo mapa da migration 1790380800000. Cópia da coluna `true` daquele
+// MAPA; o portao-semaforo (S9) confere esta cópia contra o arquivo da migration.
+const TRUE_VOCAB_ANTIGO = {
+  pdl1_cps1:"positivo", pdl1_pos:"positivo", pdl1_alto:"positivo", msi_alto:"positivo",
+  mutacao_brca:"positivo", mutacao_brca_germinativa:"positivo", alteracao_fgfr:"positivo",
+  cldn18_2_positivo:"positivo", fusao_ntrk:"positivo", sstr_positivo:"positivo",
+  ras_wt:"selvagem", braf_wt:"selvagem",   // *_wt: true = wild-type, não "positivo"
+};
 function sanearClinico(t,clin){
   const out = {...(clin||{})};
   (primFieldsFor(t)||[]).forEach(s=>{
     const v = out[s.campo];
     if(v===undefined||v===null||v==="") return;
-    if(!noDominio(s,v) && _indet(s, primDefault(s))) delete out[s.campo];
+    if(noDominio(s,v)) return;
+    const trad = v===true ? TRUE_VOCAB_ANTIGO[s.campo] : undefined;
+    if(trad!==undefined && noDominio(s,trad)) out[s.campo] = trad;
+    else if(_indet(s, primDefault(s))) delete out[s.campo];
   });
   return out;
 }

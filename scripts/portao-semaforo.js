@@ -33,7 +33,9 @@
 //   S9 ★ semente saneada — avaliacoes.snapshot_campos guarda o vocabulário antigo (é
 //      registro de auditoria, a migration não o toca) e é ele que semeia a tela. Booleano
 //      fora do domínio atual tem de sair das DUAS sementes (seedClinDoSeguimento e
-//      iniciarReaval) como não informado → 🟡, nunca 🔴; o snapshot fica intacto; e o
+//      iniciarReaval) sem 🔴 silencioso: `false` (ambíguo — era o default) como não
+//      informado → 🟡; `true` (só sai de clique) traduzido pelo mapa da migration
+//      1790380800000, com paridade app × migration; o snapshot fica intacto; e o
 //      default antigo da leva 2, que está DENTRO do domínio, não é adivinhado. O descarte é
 //      amarrado à declaração de `indeterminado`: campo sem ela guarda o valor (descartar o
 //      mandaria a um default clínico). Sintético por classe + o registro legado real do
@@ -323,16 +325,29 @@ function camposDaRegra(node, crit, out, seen, nums) {
     // A TERCEIRA coluna de clínico, avaliacoes.snapshot_campos, fica fora do S6 e da
     // migration de propósito: é registro de AUDITORIA (o que o médico viu naquele dia) e
     // continua guardando `false`/`true` nos booleanos convertidos. Mas é ela que semeia a
-    // tela (seedClinDoSeguimento) e a reavaliação (iniciarReaval). Sem saneamento, `false`
-    // contra `eq "positivo"` dá 🔴 em silêncio — produção tem 4 valores assim, em 4
-    // avaliações de 2 pacientes. O que se afirma aqui: valor fora do domínio ATUAL sai da
-    // semente como não informado (→ `nao_testado` → 🟡), e o snapshot fica como estava.
+    // tela (seedClinDoSeguimento) e a reavaliação (iniciarReaval). Semeado cru, o booleano
+    // dá 🔴 em silêncio (`false`/`true` contra `eq "positivo"`). Produção tem 4 valores
+    // assim, todos em `mutacao_brca`: pac#85 (próstata) false ×2, pac#88 (ovário) TRUE ×2.
     //
-    // Sintético: o caso de produção, por CLASSE — cada par (campo × regime) do S3 sobre os
-    // booleanos convertidos, com o exame gravado como `true` e como `false`. Passa pelas
-    // duas sementes REAIS da tela, num paciente que só existe na memória da página.
+    // As duas direções NÃO são simétricas, e é o próprio defeito original que diz por quê:
+    // o primDefault materializava `false` em todo booleano não tocado, então `false` gravado
+    // é ambíguo (default ou "negativo"?) e sai como não informado → `nao_testado` → 🟡. Já
+    // `true` só pode ter vindo de alguém clicando — é resultado de exame registrado — e é
+    // TRADUZIDO pelo mesmo mapa da migration 1790380800000 (positivo; selvagem nos *_wt).
+    // Descartá-lo esconderia uma elegibilidade real (BRCA+ em ovário → olaparibe).
+    // Tudo na leitura: o snapshot fica como estava.
+    //
+    // Sintético: por CLASSE — cada par (campo × regime) do S3 sobre os booleanos
+    // convertidos, com o exame gravado como `true` e como `false`. Passa pelas duas
+    // sementes REAIS da tela, num paciente que só existe na memória da página.
     const ehConvertido = new Set(CONVERTIDOS.map(([t, c]) => `${t}|${c}`));
     const sinteticos = pares.filter((x) => ehConvertido.has(`${x.t}|${x.campo}`));
+    // O mapa sai do ARQUIVO da migration, não de uma cópia no portão: é contra ele que a
+    // cópia da app é conferida, e um mapa duplicado aqui só provaria que duas cópias batem.
+    const fonteMig = require('fs').readFileSync(path.join(ROOT, 'backend/src/database/migrations/1790380800000-VocabularioExameNaoTestado.ts'), 'utf8');
+    const blocoMapa = fonteMig.slice(fonteMig.indexOf('const MAPA'), fonteMig.indexOf('};', fonteMig.indexOf('const MAPA')));
+    const MAPA_MIG = {};
+    for (const m of blocoMapa.matchAll(/(\w+):\s*\['(\w+)',\s*'(\w+)'\]/g)) MAPA_MIG[m[1]] = [m[2], m[3]];
     const semear = (t, rid, snap) => page.evaluate(([t, rid, snap]) => {
       const ID = -954;   // paciente de mentira, só na memória da página — nada vai ao servidor
       const d = { tumor: t, ultima_avaliacao: { id: -1, linha_tratamento: 1, snapshot_campos: snap } };
@@ -353,23 +368,72 @@ function camposDaRegra(node, crit, out, seen, nums) {
       }
     }, [t, rid, snap]);
     const SEM = { ok: 'verde', bad: 'vermelho', warn: 'amarelo' };
-    const falhasSemente = [], cruVermelho = [], alterados = [];
-    let nSint = 0;
+
+    // Paridade do mapa: a cópia da app (só a coluna `true`) contra o arquivo da migration.
+    const mapaApp = await page.evaluate(() => (typeof TRUE_VOCAB_ANTIGO === 'undefined' ? null : TRUE_VOCAB_ANTIGO));
+    const camposConv = new Set(CONVERTIDOS.map(([, c]) => c));   // 15 pares (tumor, campo), 12 nomes
+    const divergeMapa = Object.keys(MAPA_MIG).length !== camposConv.size || ![...camposConv].every((c) => MAPA_MIG[c])
+      ? [`migration com ${Object.keys(MAPA_MIG).length} campos lidos, esperado os ${camposConv.size} convertidos`] : [];
+    if (!mapaApp) divergeMapa.push('app sem TRUE_VOCAB_ANTIGO');
+    else for (const c of new Set([...Object.keys(MAPA_MIG), ...Object.keys(mapaApp)]))
+      if ((MAPA_MIG[c] || [])[0] !== mapaApp[c]) divergeMapa.push(`${c}: migration=${(MAPA_MIG[c] || [])[0]} app=${mapaApp[c]}`);
+    ok(`S9 ★ paridade do mapa \`true\` → domínio novo: app × migration 1790380800000 (${Object.keys(MAPA_MIG).length} campos lidos do arquivo da migration)`, divergeMapa.length === 0, divergeMapa.slice(0, 4).join(' | '));
+
+    const falhasFalse = [], falhasTrue = [], cruVermelho = [], trueEscondido = [], alterados = [];
+    let nTrue = 0, nFalse = 0, trueVerde = 0;
     for (const x of sinteticos) for (const v of [true, false]) {
       const snap = { ...x.over, [x.campo]: v };
       const cru = await vereditoApp(x.rid, x.t, snap);   // o que a tela pintava semeando o snapshot cru
       if (cru.v === 'vermelho') cruVermelho.push(`${x.t}/${x.campo}=${v}/${x.rid}`);
       const r = await semear(x.t, x.rid, snap);
-      nSint++;
-      if (r.seg !== 'warn' || r.rea !== 'warn')
-        falhasSemente.push(`${x.t}/${x.campo}=${v}/${x.rid}: seguimento=${SEM[r.seg]} reavaliação=${SEM[r.rea]} (devia ser amarelo)`);
       if (!r.intacto) alterados.push(`${x.t}/${x.campo}=${v}`);
+      const id = `${x.t}/${x.campo}=${v}/${x.rid}`;
+      if (v === false) {
+        nFalse++;
+        if (r.seg !== 'warn' || r.rea !== 'warn' || r.segClin[x.campo] !== undefined || r.reaClin[x.campo] !== undefined)
+          falhasFalse.push(`${id}: seguimento=${SEM[r.seg]} reavaliação=${SEM[r.rea]} (devia ser amarelo, campo não informado)`);
+        continue;
+      }
+      // true: o esperado é o veredito do MESMO resto de regra com o valor positivo do domínio.
+      nTrue++;
+      const alvo = (MAPA_MIG[x.campo] || [])[0];
+      const esp = await vereditoApp(x.rid, x.t, { ...x.over, [x.campo]: alvo });
+      if (esp.v !== 'amarelo') trueEscondido.push(`${id}: ${esp.v}`);   // descartar daria 🟡 — esconderia isto
+      if (esp.v === 'verde') trueVerde++;
+      if (r.segClin[x.campo] !== alvo || r.reaClin[x.campo] !== alvo || SEM[r.seg] !== esp.v || SEM[r.rea] !== esp.v)
+        falhasTrue.push(`${id}: semente seguimento=${JSON.stringify(r.segClin[x.campo])}/${SEM[r.seg]} reavaliação=${JSON.stringify(r.reaClin[x.campo])}/${SEM[r.rea]} (devia ser ${alvo}/${esp.v})`);
     }
-    ok(`S9 ★ booleano do vocabulário antigo no snapshot ⇒ 🟡 depois da semente, nunca 🔴 — ${nSint} casos (${sinteticos.length} pares campo × regime dos ${CONVERTIDOS.length} booleanos convertidos, × true/false), nas DUAS sementes: seedClinDoSeguimento e iniciarReaval`,
-      sinteticos.length > 0 && falhasSemente.length === 0, falhasSemente.slice(0, 4).join(' | '));
-    ok(`S9 não-vácuo: o MESMO snapshot semeado cru (sem saneamento) pinta 🔴 em ${cruVermelho.length} dos ${nSint} casos — o defeito plantado existe`,
+    const nPares = `${sinteticos.length} pares campo × regime dos ${CONVERTIDOS.length} booleanos convertidos`;
+    ok(`S9 ★ \`false\` do vocabulário antigo ⇒ não informado ⇒ 🟡, nunca 🔴 — ${nFalse} casos (${nPares}), nas DUAS sementes: seedClinDoSeguimento e iniciarReaval`,
+      nFalse > 0 && falhasFalse.length === 0, falhasFalse.slice(0, 4).join(' | '));
+    ok(`S9 ★ \`true\` do vocabulário antigo ⇒ traduzido pelo mapa da migration ⇒ chega ao semáforo como o valor positivo do domínio — ${nTrue} casos (${nPares}), nas DUAS sementes`,
+      nTrue > 0 && falhasTrue.length === 0, falhasTrue.slice(0, 4).join(' | '));
+    ok(`S9 não-vácuo (false): o MESMO snapshot semeado cru pinta 🔴 em ${cruVermelho.length} dos ${nTrue + nFalse} casos — o defeito plantado existe`,
       cruVermelho.length > 0, cruVermelho.slice(0, 3).join(' | '));
+    ok(`S9 não-vácuo (true): em ${trueEscondido.length} dos ${nTrue} casos o valor traduzido DECIDE o regime (${trueVerde} 🟢) — descartar o \`true\` daria 🟡 em todos eles`,
+      nTrue > 0 && trueEscondido.length === nTrue, trueEscondido.slice(0, 3).join(' | '));
     ok('S9 registro de auditoria intacto: a semente não altera o snapshot da avaliação', alterados.length === 0, alterados.slice(0, 3).join(' | '));
+
+    // Os dois pacientes de produção, pelo NOME do caso (consulta 4). O resto do clínico é o
+    // que a regra pede satisfeito — o snapshot real deles não está em dev; o que se fixa aqui
+    // é o veredito que o valor gravado tem de produzir, com todo o resto a favor.
+    //   pac#88 ovário, mutacao_brca=true (aval 157 e 158): BRCA+ registrado por médico — os
+    //     dois regimes de olaparibe de manutenção que leem o campo têm de seguir ELEGÍVEIS.
+    //   pac#85 próstata, mutacao_brca=false (aval 152 e 155): ambíguo — 🟡, nunca 🔴.
+    const nominais = [
+      ['pac#88', 'ovario', 'ovario-manutencao-olaparibe-brca', { tumor: 'ovario_epitelial', resposta_platina: true, mutacao_brca: true }, 'ok'],
+      ['pac#88', 'ovario', 'ovario-recidiva-manutencao-olaparibe-brca', { tumor: 'ovario_epitelial', recidiva_platina_sensivel: true, mutacao_brca: true }, 'ok'],
+      ['pac#85', 'prostata', 'prostata-mcrpc-1l-parp-nao-incorporado', { metastatico: true, resistente_castracao: true, mutacao_brca: false }, 'warn'],
+    ];
+    const falhasNom = [], vistosNom = [];
+    for (const [pac, t, rid, snap, esp] of nominais) {
+      if (!REGS.some((r) => r.regimen_id === rid)) { falhasNom.push(`${pac} ${rid}: regime ausente do corpus`); continue; }
+      const r = await semear(t, rid, snap);
+      vistosNom.push(`${pac} ${rid}: ${SEM[r.seg]}/${SEM[r.rea]}`);
+      if (r.seg !== esp || r.rea !== esp) falhasNom.push(`${pac} ${rid}: seguimento=${SEM[r.seg]} reavaliação=${SEM[r.rea]} (devia ser ${SEM[esp]})`);
+    }
+    ok('S9 ★ casos nominais de produção: pac#88 (ovário, BRCA true) segue 🟢 nos 2 regimes de olaparibe de manutenção; pac#85 (próstata, BRCA false) fica 🟡 no PARP — nas duas sementes',
+      falhasNom.length === 0, (falhasNom.length ? falhasNom : vistosNom).join(' | '));
 
     // O saneamento descarta só o que está FORA do domínio. O default antigo da leva 2
     // (mama her2=positivo, rh=positivo, brca=selvagem) está DENTRO: "positivo" posto pelo
@@ -407,7 +471,7 @@ function camposDaRegra(node, crit, out, seen, nums) {
     // (indeterminado declarado na decisão de 16/09) com valor fora do domínio também sai.
     const [tDrv, cDrv] = JA_CORRETOS[0];
     const drv = await semear(tDrv, null, { [cDrv]: true });
-    ok(`S9 ★ o descarte segue a declaração, não a lista: ${tDrv}/${cDrv}=true (fora dos 15, indeterminado declarado) sai das duas sementes como não informado`,
+    ok(`S9 ★ o descarte segue a declaração, não a lista: ${tDrv}/${cDrv}=true (fora dos 15 e do mapa da migration — o true não tem tradução; indeterminado declarado) sai das duas sementes como não informado`,
       drv.segClin[cDrv] === undefined && drv.reaClin[cDrv] === undefined, `seguimento=${JSON.stringify(drv.segClin[cDrv])} reavaliação=${JSON.stringify(drv.reaClin[cDrv])}`);
 
     // Real: o registro legado que existe no banco de DEV, pelo caminho inteiro da tela —
@@ -446,15 +510,17 @@ function camposDaRegra(node, crit, out, seen, nums) {
       const id = `pac#${x.pid} aval#${x.aval} (${x.tumor}) ${x.campo}=${JSON.stringify(x.v)}`;
       if (r.fora) { falhasReal.push(`${id}: paciente fora da lista do perfil de teste — o caminho da tela não foi exercitado`); continue; }
       if (r.semDetalhe) { falhasReal.push(`${id}: GET /pacientes/${x.pid} falhou na tela — o caminho não foi exercitado`); continue; }
-      if (r.segVal !== undefined) falhasReal.push(`${id}: seguimento semeou ${JSON.stringify(r.segVal)}`);
-      if (r.reaVal !== undefined) falhasReal.push(`${id}: reavaliação semeou ${JSON.stringify(r.reaVal)}`);
+      // true traduzido pelo mapa da migration; o resto (false, ou true sem tradução) sai vazio.
+      const espReal = x.v === true && MAPA_MIG[x.campo] ? MAPA_MIG[x.campo][0] : undefined;
+      if (r.segVal !== espReal) falhasReal.push(`${id}: seguimento semeou ${JSON.stringify(r.segVal)} (devia ${JSON.stringify(espReal)})`);
+      if (r.reaVal !== espReal) falhasReal.push(`${id}: reavaliação semeou ${JSON.stringify(r.reaVal)} (devia ${JSON.stringify(espReal)})`);
       if (!r.intacto) falhasReal.push(`${id}: o snapshot servido não traz mais o valor gravado`);
-      r.mud.filter(([, , san]) => san !== 'warn').forEach(([rid, cru, san]) => falhasReal.push(`${id}: ${rid} ${SEM[cru]}→${SEM[san]} (devia ir a amarelo)`));
+      if (espReal === undefined) r.mud.filter(([, , san]) => san !== 'warn').forEach(([rid, cru, san]) => falhasReal.push(`${id}: ${rid} ${SEM[cru]}→${SEM[san]} (devia ir a amarelo)`));
       mudancas.push(r.mud.length
         ? `${id}: ${r.mud.map(([rid, cru, san]) => `${rid} ${SEM[cru]}→${SEM[san]}`).join(', ')}`
         : `${id}: campo vira não testado, nenhum veredito muda (o resto do clínico já decide os ${r.nReg} regime(s) que leem o campo)`);
     }
-    ok(`S9 ★ registro real de dev — escopo varrido: avaliacoes.snapshot_campos=${snaps.length} linhas, ${legSnap.length} valor(es) fora do domínio, ${semeiam.length} na última avaliação (a que semeia a tela): cada um sai das duas sementes como não informado, e o que muda no semáforo vai a 🟡`,
+    ok(`S9 ★ registro real de dev — escopo varrido: avaliacoes.snapshot_campos=${snaps.length} linhas, ${legSnap.length} valor(es) fora do domínio, ${semeiam.length} na última avaliação (a que semeia a tela): cada um sai das duas sementes como o mapa manda (false → não informado, e o que muda vai a 🟡; true → valor positivo do domínio)`,
       semeiam.length > 0 && falhasReal.length === 0,
       (semeiam.length ? [...falhasReal.slice(0, 4), ...(falhasReal.length ? [] : mudancas.slice(0, 6))] : ['nenhum registro legado na última avaliação em dev — o check real ficou VÁCUO (a classe segue coberta pelo sintético)']).join(' | '));
 
